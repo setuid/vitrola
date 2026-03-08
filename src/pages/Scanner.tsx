@@ -33,6 +33,9 @@ export function Scanner() {
   const [capturedFile, setCapturedFile] = useState<File | null>(null)
   const [showCamera, setShowCamera] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrFailed, setOcrFailed] = useState(false)
+  const [photoQuery, setPhotoQuery] = useState('')
+  const [photoSearchLoading, setPhotoSearchLoading] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState(false)
   const [photoResults, setPhotoResults] = useState<DiscogsSearchResult[]>([])
   const [activeTab, setActiveTab] = useState<'manual' | 'photo'>('manual')
@@ -95,15 +98,19 @@ export function Scanner() {
     const url = await fileToDataUrl(file)
     setPreviewUrl(url)
     setOcrLoading(true)
+    setOcrFailed(false)
     try {
       const base64 = await imageToBase64(file)
       const text = await extractTextFromImage(base64)
       const { artist, title } = parseArtistAndTitle(text)
       const q = [artist, title].filter(Boolean).join(' ')
+      setPhotoQuery(q || text.slice(0, 80))
       const results = await searchDiscogs(q || text.slice(0, 80))
       setPhotoResults(results)
+      if (results.length === 0) setOcrFailed(true)
     } catch {
-      toast({ title: 'OCR falhou', description: 'Tente a busca manual.', variant: 'destructive' })
+      setOcrFailed(true)
+      toast({ title: 'Reconhecimento falhou', description: 'Busque manualmente abaixo.', variant: 'destructive' })
     } finally {
       setOcrLoading(false)
     }
@@ -121,13 +128,15 @@ export function Scanner() {
       toast({ title: 'Você precisa estar logado', variant: 'destructive' })
       return
     }
+    const defaults = getDefaultValues()
     const payload = {
+      ...defaults,
       ...data,
       user_id: user.id,
       title: data.title || '',
       artist: data.artist || '',
-      format: data.format || 'LP',
-      rpm: data.rpm || 33,
+      format: data.format || defaults.format || 'LP',
+      rpm: data.rpm || defaults.rpm || 33,
       condition: data.condition || 'VG+',
       play_count: 0,
     } as Omit<VinylRecord, 'id' | 'created_at' | 'updated_at'>
@@ -230,12 +239,50 @@ export function Scanner() {
                 </div>
               )}
 
-              {photoResults.length > 0 && (
-                <SearchResults
-                  results={photoResults}
-                  onSelect={handleSelectResult}
-                  selectedId={selectedResult?.id}
-                />
+              {(ocrFailed || photoResults.length > 0) && (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Artista, título ou código..."
+                      value={photoQuery}
+                      onChange={(e) => setPhotoQuery(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' && photoQuery.trim()) {
+                          setPhotoSearchLoading(true)
+                          try {
+                            const results = await searchDiscogs(photoQuery.trim())
+                            setPhotoResults(results)
+                          } finally {
+                            setPhotoSearchLoading(false)
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      disabled={photoSearchLoading}
+                      onClick={async () => {
+                        if (!photoQuery.trim()) return
+                        setPhotoSearchLoading(true)
+                        try {
+                          const results = await searchDiscogs(photoQuery.trim())
+                          setPhotoResults(results)
+                        } finally {
+                          setPhotoSearchLoading(false)
+                        }
+                      }}
+                    >
+                      {photoSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {photoResults.length > 0 && (
+                    <SearchResults
+                      results={photoResults}
+                      onSelect={handleSelectResult}
+                      selectedId={selectedResult?.id}
+                    />
+                  )}
+                </div>
               )}
             </TabsContent>
           </Tabs>
