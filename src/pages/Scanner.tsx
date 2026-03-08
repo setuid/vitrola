@@ -190,7 +190,7 @@ export function Scanner() {
             <TabsContent value="photo" className="space-y-4 mt-4">
               {showCamera ? (
                 <CameraView
-                  onCapture={handleFileDrop.bind(null)}
+                  onCapture={(file: File) => handleFileDrop([file])}
                   onClose={() => setShowCamera(false)}
                 />
               ) : (
