@@ -98,9 +98,9 @@ export function Shelf() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4 sm:space-y-6 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="font-display text-3xl font-bold text-[#F5F0E8]">Minha Estante</h1>
           <p className="text-[#9A9080] text-sm mt-0.5">
@@ -115,8 +115,8 @@ export function Shelf() {
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[150px] sm:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5248]" />
           <Input
             className="pl-9"
