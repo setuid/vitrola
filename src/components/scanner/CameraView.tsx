@@ -92,7 +92,7 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
 
       {started && !captured && (
         <>
-          <video ref={videoRef} className="w-full" playsInline muted />
+          <video ref={videoRef} className="w-full" playsInline muted autoPlay />
           <div className="absolute bottom-4 flex gap-3 justify-center w-full">
             <Button variant="secondary" size="icon" onClick={handleClose}>
               <X className="w-4 h-4" />

@@ -21,8 +21,14 @@ export async function extractTextFromImage(base64Image: string): Promise<string>
     }),
   })
 
-  if (!response.ok) throw new Error('Vision API request failed')
   const data = await response.json()
+  if (!response.ok) {
+    const errorMessage = data?.error?.message || data?.error?.status || 'Unknown error'
+    const errorCode = data?.error?.code || response.status
+    console.error('[Vision API] Error:', errorCode, errorMessage, data)
+    throw new Error(`Vision API error ${errorCode}: ${errorMessage}`)
+  }
+  console.log('[Vision API] Response:', data)
   return data.responses?.[0]?.fullTextAnnotation?.text || ''
 }
 
