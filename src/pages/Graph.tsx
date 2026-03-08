@@ -47,7 +47,7 @@ export function Graph() {
 
   if (records.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-3.5rem)] text-[#5A5248]">
+      <div className="flex flex-col items-center justify-center h-[calc(100dvh-3.5rem)] text-[#5A5248]">
         <Network className="w-12 h-12 mb-4 opacity-30" />
         <p>Adicione discos para ver o grafo.</p>
       </div>
@@ -55,19 +55,19 @@ export function Graph() {
   }
 
   return (
-    <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden">
+    <div className="relative w-full h-[calc(100dvh-3.5rem)] overflow-hidden">
       {/* Header overlay */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-4 z-10"
+        className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10"
       >
-        <h1 className="font-display text-xl font-bold text-[#F5F0E8]">Vitrola Graph</h1>
-        <p className="text-xs text-[#9A9080]">Relações entre os seus discos</p>
+        <h1 className="font-display text-lg sm:text-xl font-bold text-[#F5F0E8]">Vitrola Graph</h1>
+        <p className="text-[10px] sm:text-xs text-[#9A9080]">Relações entre os seus discos</p>
       </motion.div>
 
       {/* Controls overlay */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 max-h-[calc(100dvh-6rem)] overflow-y-auto">
         <GraphControls
           activeRelations={activeRelations}
           onToggle={toggleRelation}

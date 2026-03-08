@@ -7,7 +7,7 @@ const ALL_RELATIONS: RelationType[] = ['artist', 'genre', 'style', 'era', 'label
 export function useGraph() {
   const { data: records = [] } = useRecords()
   const [activeRelations, setActiveRelations] = useState<RelationType[]>(ALL_RELATIONS)
-  const [minScore, setMinScore] = useState(25)
+  const [minScore, setMinScore] = useState(45)
   const [highlightFavorites, setHighlightFavorites] = useState(false)
   const [highlightUnplayed, setHighlightUnplayed] = useState(false)
 
