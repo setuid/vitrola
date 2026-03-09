@@ -37,7 +37,7 @@ export function Scanner() {
   const [photoResults, setPhotoResults] = useState<DiscogsSearchResult[]>([])
   const [activeTab, setActiveTab] = useState<'manual' | 'photo'>('manual')
 
-  const { data: releaseDetails } = useDiscogsRelease(
+  const { data: releaseDetails, isLoading: releaseLoading } = useDiscogsRelease(
     step === 'confirm' && selectedResult ? selectedResult.id : null
   )
 
@@ -279,16 +279,18 @@ export function Scanner() {
             </div>
           )}
 
-          {!releaseDetails && (
+          {releaseLoading && (
             <div className="flex items-center gap-2 text-[#9A9080] text-sm py-2">
               <Loader2 className="w-4 h-4 animate-spin" /> Carregando detalhes completos...
             </div>
           )}
 
           <RecordForm
+            key={releaseDetails ? 'loaded' : 'loading'}
             defaultValues={getDefaultValues()}
             onSubmit={handleSave}
             submitLabel="Adicionar à coleção"
+            disabled={releaseLoading}
           />
         </motion.div>
       )}

@@ -32,9 +32,10 @@ interface RecordFormProps {
   defaultValues?: Partial<VinylRecord>
   onSubmit: (data: Partial<VinylRecord>) => Promise<void>
   submitLabel?: string
+  disabled?: boolean
 }
 
-export function RecordForm({ defaultValues, onSubmit, submitLabel = 'Salvar' }: RecordFormProps) {
+export function RecordForm({ defaultValues, onSubmit, submitLabel = 'Salvar', disabled }: RecordFormProps) {
   const [rating, setRating] = useState<number | null>(defaultValues?.rating ?? null)
   const [loading, setLoading] = useState(false)
 
@@ -164,9 +165,9 @@ export function RecordForm({ defaultValues, onSubmit, submitLabel = 'Salvar' }: 
         <StarRating value={rating} onChange={setRating} />
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
-        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        {submitLabel}
+      <Button type="submit" disabled={loading || disabled} className="w-full">
+        {(loading || disabled) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {disabled ? 'Carregando detalhes...' : submitLabel}
       </Button>
     </form>
   )
