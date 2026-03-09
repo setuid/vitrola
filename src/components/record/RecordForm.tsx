@@ -19,9 +19,9 @@ const schema = z.object({
   label: z.string().optional(),
   catalog_number: z.string().optional(),
   country: z.string().optional(),
-  format: z.string().default('LP'),
-  rpm: z.coerce.number().default(33),
-  condition: z.string().default('VG+'),
+  format: z.string().min(1),
+  rpm: z.coerce.number(),
+  condition: z.string().min(1),
   notes: z.string().optional(),
   tags: z.string().optional(),
 })
