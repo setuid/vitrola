@@ -7,7 +7,7 @@ import { useCreateRecord } from '@/hooks/useRecords'
 import { useAuth } from '@/hooks/useAuth'
 import { useDebouncedSearch, useDiscogsRelease } from '@/hooks/useDiscogs'
 import { toast } from '@/hooks/useToast'
-import { extractTextFromImage, imageToBase64, fileToDataUrl, parseArtistAndTitle } from '@/lib/vision'
+import { detectAlbumCover, imageToBase64, fileToDataUrl } from '@/lib/vision'
 import { searchDiscogs, parseDuration } from '@/lib/discogs'
 import type { DiscogsSearchResult } from '@/lib/discogs'
 import { Button } from '@/components/ui/button'
@@ -97,13 +97,15 @@ export function Scanner() {
     setOcrLoading(true)
     try {
       const base64 = await imageToBase64(file)
-      const text = await extractTextFromImage(base64)
-      const { artist, title } = parseArtistAndTitle(text)
-      const q = [artist, title].filter(Boolean).join(' ')
-      const results = await searchDiscogs(q || text.slice(0, 80))
+      const detection = await detectAlbumCover(base64)
+      const results = await searchDiscogs(detection.query)
       setPhotoResults(results)
-    } catch {
-      toast({ title: 'OCR falhou', description: 'Tente a busca manual.', variant: 'destructive' })
+      if (results.length === 0) {
+        toast({ title: 'Nenhum resultado', description: `Busca: "${detection.query}". Tente a busca manual.`, variant: 'destructive' })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro desconhecido'
+      toast({ title: 'Reconhecimento falhou', description: message, variant: 'destructive' })
     } finally {
       setOcrLoading(false)
     }
