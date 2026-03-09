@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SearchResults } from '@/components/scanner/SearchResults'
 import { CameraView } from '@/components/scanner/CameraView'
+import { ImageCropper } from '@/components/scanner/ImageCropper'
 import { RecordForm } from '@/components/record/RecordForm'
 import type { VinylRecord } from '@/lib/supabase'
 import { supabase } from '@/lib/supabase'
@@ -32,6 +33,7 @@ export function Scanner() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [capturedFile, setCapturedFile] = useState<File | null>(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [duplicateWarning, setDuplicateWarning] = useState(false)
   const [photoResults, setPhotoResults] = useState<DiscogsSearchResult[]>([])
@@ -91,12 +93,20 @@ export function Scanner() {
   const handleFileDrop = useCallback(async (files: File[]) => {
     const file = files[0]
     if (!file) return
-    setCapturedFile(file)
     const url = await fileToDataUrl(file)
+    setCropImageSrc(url)
+    setShowCamera(false)
+    setActiveTab('photo')
+  }, [])
+
+  const handleCropDone = useCallback(async (croppedFile: File) => {
+    setCropImageSrc(null)
+    setCapturedFile(croppedFile)
+    const url = await fileToDataUrl(croppedFile)
     setPreviewUrl(url)
     setOcrLoading(true)
     try {
-      const base64 = await imageToBase64(file)
+      const base64 = await imageToBase64(croppedFile)
       const detection = await detectAlbumCover(base64)
       const results = await searchDiscogs(detection.query)
       setPhotoResults(results)
@@ -109,7 +119,10 @@ export function Scanner() {
     } finally {
       setOcrLoading(false)
     }
-    setActiveTab('photo')
+  }, [])
+
+  const handleCropCancel = useCallback(() => {
+    setCropImageSrc(null)
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -214,7 +227,13 @@ export function Scanner() {
             </TabsContent>
 
             <TabsContent value="photo" className="space-y-4 mt-4">
-              {showCamera ? (
+              {cropImageSrc ? (
+                <ImageCropper
+                  imageSrc={cropImageSrc}
+                  onCropDone={handleCropDone}
+                  onCancel={handleCropCancel}
+                />
+              ) : showCamera ? (
                 <CameraView
                   onCapture={(file: File) => handleFileDrop([file])}
                   onClose={() => setShowCamera(false)}
