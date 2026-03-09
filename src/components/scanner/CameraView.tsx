@@ -23,7 +23,6 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.play()
       }
       setStarted(true)
     } catch {
@@ -90,22 +89,26 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
         </div>
       )}
 
+      <video
+        ref={videoRef}
+        className={started && !captured ? 'w-full' : 'hidden'}
+        playsInline
+        muted
+        autoPlay
+      />
       {started && !captured && (
-        <>
-          <video ref={videoRef} className="w-full" playsInline muted />
-          <div className="absolute bottom-4 flex gap-3 justify-center w-full">
-            <Button variant="secondary" size="icon" onClick={handleClose}>
-              <X className="w-4 h-4" />
-            </Button>
-            <Button
-              size="icon"
-              className="w-14 h-14 rounded-full bg-[#C9A84C] hover:bg-[#E8B84B]"
-              onClick={capture}
-            >
-              <Camera className="w-6 h-6 text-[#0A0A0A]" />
-            </Button>
-          </div>
-        </>
+        <div className="absolute bottom-4 flex gap-3 justify-center w-full">
+          <Button variant="secondary" size="icon" onClick={handleClose}>
+            <X className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
+            className="w-14 h-14 rounded-full bg-[#C9A84C] hover:bg-[#E8B84B]"
+            onClick={capture}
+          >
+            <Camera className="w-6 h-6 text-[#0A0A0A]" />
+          </Button>
+        </div>
       )}
 
       {captured && (
