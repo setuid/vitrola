@@ -149,7 +149,7 @@ export function SessionBuilder() {
         return
       }
       toast({ title: 'Sessão salva!', variant: 'success' })
-      navigate('/sessions')
+      navigate(`/sessions/${sessionId}`)
     } catch {
       toast({ title: 'Erro ao salvar', variant: 'destructive' })
     } finally {

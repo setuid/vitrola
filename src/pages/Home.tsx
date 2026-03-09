@@ -38,22 +38,25 @@ function MiniGraph({ width, height }: { width: number; height: number }) {
     const g = svg.append('g')
     const R = 16
 
+    const nodes = graphData.nodes as GraphNode[]
+    const edges = graphData.edges as GraphEdge[]
+
     const sim = d3
-      .forceSimulation<GraphNode>(graphData.nodes as GraphNode[])
+      .forceSimulation<GraphNode>(nodes)
       .force(
         'link',
-        d3.forceLink<GraphNode, GraphEdge>(graphData.edges as GraphEdge[])
+        d3.forceLink<GraphNode, GraphEdge>(edges)
           .id((d) => d.id)
           .distance(60)
           .strength(0.3)
       )
       .force('charge', d3.forceManyBody().strength(-60))
-      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('center', d3.forceCenter(0, 0))
       .force('collision', d3.forceCollide(R + 4))
 
     const link = g
       .selectAll('line')
-      .data(graphData.edges as GraphEdge[])
+      .data(edges)
       .enter()
       .append('line')
       .attr('stroke', (d) => {
@@ -64,13 +67,13 @@ function MiniGraph({ width, height }: { width: number; height: number }) {
       .attr('stroke-opacity', 0.3)
 
     const defs = svg.append('defs')
-    graphData.nodes.forEach((n: GraphNode) => {
+    nodes.forEach((n: GraphNode) => {
       defs.append('clipPath').attr('id', `mc-${n.id}`).append('circle').attr('r', R - 1)
     })
 
     const node = g
       .selectAll('g.node')
-      .data(graphData.nodes as GraphNode[])
+      .data(nodes)
       .enter()
       .append('g')
 
@@ -92,6 +95,25 @@ function MiniGraph({ width, height }: { width: number; height: number }) {
         .attr('x2', (d) => (d.target as GraphNode).x ?? 0)
         .attr('y2', (d) => (d.target as GraphNode).y ?? 0)
       node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`)
+    })
+
+    // After simulation stabilizes, fit the graph to center
+    sim.on('end', () => {
+      const xs = nodes.map((n) => n.x ?? 0)
+      const ys = nodes.map((n) => n.y ?? 0)
+      const minX = Math.min(...xs) - R
+      const maxX = Math.max(...xs) + R
+      const minY = Math.min(...ys) - R
+      const maxY = Math.max(...ys) + R
+      const bw = maxX - minX || 1
+      const bh = maxY - minY || 1
+      const padding = 16
+      const scale = Math.min((width - padding * 2) / bw, (height - padding * 2) / bh, 1.8)
+      const cx = (minX + maxX) / 2
+      const cy = (minY + maxY) / 2
+      g.transition()
+        .duration(400)
+        .attr('transform', `translate(${width / 2},${height / 2}) scale(${scale}) translate(${-cx},${-cy})`)
     })
 
     return () => sim.stop()
