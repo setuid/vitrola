@@ -134,7 +134,7 @@ export function Scanner() {
       play_count: 0,
     } as Omit<VinylRecord, 'id' | 'created_at' | 'updated_at'>
 
-    // Upload captured file to Supabase Storage
+    // Upload cover to Supabase Storage (from captured file or Discogs URL)
     if (capturedFile && user) {
       const tmpId = crypto.randomUUID()
       const path = `covers/${user.id}/${tmpId}.jpg`
@@ -143,6 +143,28 @@ export function Scanner() {
         const { data: urlData } = supabase.storage.from('covers').getPublicUrl(path)
         payload.cover_image_url = urlData.publicUrl
         payload.cover_storage_path = path
+      }
+    } else if (payload.cover_image_url && user) {
+      // Download Discogs image and re-upload to Supabase Storage
+      try {
+        const imgResp = await fetch(payload.cover_image_url)
+        if (imgResp.ok) {
+          const blob = await imgResp.blob()
+          const tmpId = crypto.randomUUID()
+          const ext = blob.type === 'image/png' ? 'png' : 'jpg'
+          const path = `covers/${user.id}/${tmpId}.${ext}`
+          const { error } = await supabase.storage.from('covers').upload(path, blob, {
+            upsert: true,
+            contentType: blob.type,
+          })
+          if (!error) {
+            const { data: urlData } = supabase.storage.from('covers').getPublicUrl(path)
+            payload.cover_image_url = urlData.publicUrl
+            payload.cover_storage_path = path
+          }
+        }
+      } catch {
+        // Keep the original Discogs URL as fallback
       }
     }
 
