@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Save, Search, Loader2, Disc3, ArrowLeft } from 'lucide-react'
@@ -45,6 +45,10 @@ export function SessionBuilder() {
   const [sessionId, setSessionId] = useState<string | null>(isNew ? null : id || null)
   const [localQueue, setLocalQueue] = useState<QueueItem[]>(sessionData?.records || [])
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   const filteredRecords = useMemo(() => {
     const q = search.toLowerCase()
