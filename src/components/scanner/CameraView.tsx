@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react'
+import { useRef, useCallback, useState, useEffect } from 'react'
 import { Camera, X, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -15,7 +15,12 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
   const [captured, setCaptured] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const startCamera = async () => {
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+  }, [])
+
+  const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -23,17 +28,19 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.play()
       }
       setStarted(true)
     } catch {
       setError('Não foi possível acessar a câmera. Verifique as permissões.')
     }
-  }
-
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    streamRef.current = null
   }, [])
+
+  // Auto-start camera on mount
+  useEffect(() => {
+    startCamera()
+    return () => stopCamera()
+  }, [startCamera, stopCamera])
 
   const capture = () => {
     if (!videoRef.current || !canvasRef.current) return
@@ -73,52 +80,50 @@ export function CameraView({ onCapture, onClose }: CameraViewProps) {
   }
 
   return (
-    <div className="relative bg-black rounded-xl overflow-hidden min-h-[300px] flex flex-col items-center justify-center">
-      {!started && !captured && !error && (
-        <div className="text-center space-y-4 p-8">
-          <Camera className="w-12 h-12 text-[#9A9080] mx-auto" />
-          <p className="text-[#9A9080] text-sm">Aponte a câmera para a capa do disco</p>
-          <Button onClick={startCamera}>Iniciar câmera</Button>
-        </div>
-      )}
-
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {error && (
-        <div className="text-center space-y-3 p-8">
-          <p className="text-red-400 text-sm">{error}</p>
-          <Button variant="outline" onClick={handleClose}>Fechar</Button>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-3 p-8">
+            <p className="text-red-400 text-sm">{error}</p>
+            <Button variant="outline" onClick={handleClose}>Fechar</Button>
+          </div>
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        className={started && !captured ? 'w-full' : 'hidden'}
-        playsInline
-        muted
-        autoPlay
-      />
-      {started && !captured && (
-        <div className="absolute bottom-4 flex gap-3 justify-center w-full">
-          <Button variant="secondary" size="icon" onClick={handleClose}>
-            <X className="w-4 h-4" />
-          </Button>
-          <Button
-            size="icon"
-            className="w-14 h-14 rounded-full bg-[#C9A84C] hover:bg-[#E8B84B]"
-            onClick={capture}
-          >
-            <Camera className="w-6 h-6 text-[#0A0A0A]" />
-          </Button>
-        </div>
+      {!error && !captured && (
+        <>
+          <video
+            ref={videoRef}
+            className="flex-1 object-cover"
+            playsInline
+            muted
+          />
+          {started && (
+            <div className="absolute bottom-0 inset-x-0 pb-10 pt-6 flex gap-3 justify-center bg-gradient-to-t from-black/80 to-transparent">
+              <Button variant="secondary" size="icon" onClick={handleClose} className="bg-white/10 backdrop-blur">
+                <X className="w-5 h-5" />
+              </Button>
+              <Button
+                size="icon"
+                className="w-16 h-16 rounded-full bg-[#C9A84C] hover:bg-[#E8B84B] shadow-lg"
+                onClick={capture}
+              >
+                <Camera className="w-7 h-7 text-[#0A0A0A]" />
+              </Button>
+              <div className="w-10" /> {/* spacer for centering */}
+            </div>
+          )}
+        </>
       )}
 
       {captured && (
         <>
-          <img src={captured} alt="Captura" className="w-full" />
-          <div className="absolute bottom-4 flex gap-3 justify-center w-full">
-            <Button variant="secondary" onClick={retake}>
+          <img src={captured} alt="Captura" className="flex-1 object-contain" />
+          <div className="absolute bottom-0 inset-x-0 pb-10 pt-6 flex gap-3 justify-center bg-gradient-to-t from-black/80 to-transparent">
+            <Button variant="secondary" onClick={retake} className="bg-white/10 backdrop-blur">
               <X className="w-4 h-4 mr-1" /> Tentar novamente
             </Button>
-            <Button onClick={confirm}>
+            <Button onClick={confirm} className="bg-[#C9A84C] hover:bg-[#E8B84B] text-[#0A0A0A]">
               <Check className="w-4 h-4 mr-1" /> Usar foto
             </Button>
           </div>
