@@ -121,7 +121,9 @@ export function Scanner() {
       toast({ title: 'Você precisa estar logado', variant: 'destructive' })
       return
     }
+    const defaults = getDefaultValues()
     const payload = {
+      ...defaults,
       ...data,
       user_id: user.id,
       title: data.title || '',
