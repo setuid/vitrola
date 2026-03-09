@@ -8,8 +8,10 @@ import { RecordEdit } from '@/pages/RecordEdit'
 import { Scanner } from '@/pages/Scanner'
 import { Sessions } from '@/pages/Sessions'
 import { SessionBuilder } from '@/pages/SessionBuilder'
+import { SessionView } from '@/pages/SessionView'
 import { Graph } from '@/pages/Graph'
 import { Settings } from '@/pages/Settings'
+import { SharedCollection } from '@/pages/SharedCollection'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +27,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <HashRouter>
         <Routes>
+          {/* Public route — no auth, no navbar */}
+          <Route path="/shared/:token" element={<SharedCollection />} />
+
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/shelf" element={<Shelf />} />
@@ -33,7 +38,8 @@ export default function App() {
             <Route path="/scanner" element={<Scanner />} />
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/sessions/new" element={<SessionBuilder />} />
-            <Route path="/sessions/:id" element={<SessionBuilder />} />
+            <Route path="/sessions/:id" element={<SessionView />} />
+            <Route path="/sessions/:id/edit" element={<SessionBuilder />} />
             <Route path="/graph" element={<Graph />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

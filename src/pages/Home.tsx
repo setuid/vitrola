@@ -1,22 +1,18 @@
-import { useRef, useMemo, useEffect, useState, useCallback } from 'react'
+import { useRef, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  BookOpen, Music, Network, Camera, Disc3, ChevronLeft, ChevronRight, Calendar,
+  BookOpen, Music, Network, Camera, Disc3, ChevronLeft, ChevronRight, Calendar, Clock, Tag,
 } from 'lucide-react'
-import * as d3 from 'd3'
 import { useRecords } from '@/hooks/useRecords'
 import { useSessions } from '@/hooks/useSessions'
 import { useAuth } from '@/hooks/useAuth'
-import { useGraph } from '@/hooks/useGraph'
 import { formatDuration } from '@/lib/discogs'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AuthModal } from '@/components/auth/AuthModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { GraphNode, GraphEdge, RelationType } from '@/lib/graph'
-import { RELATION_COLORS } from '@/lib/graph'
 
 const quickLinks = [
   { to: '/scanner', label: 'Adicionar disco', icon: Camera, desc: 'Por foto ou busca' },
@@ -24,97 +20,6 @@ const quickLinks = [
   { to: '/sessions/new', label: 'Nova sessão', icon: Music, desc: 'Plano de escuta' },
   { to: '/graph', label: 'Vitrola Graph', icon: Network, desc: 'Relações entre discos' },
 ]
-
-/* ── Mini Graph (simplified, non-interactive) ── */
-function MiniGraph({ width, height }: { width: number; height: number }) {
-  const svgRef = useRef<SVGSVGElement>(null)
-  const { graphData } = useGraph()
-
-  const draw = useCallback(() => {
-    if (!svgRef.current || graphData.nodes.length === 0) return
-    const svg = d3.select(svgRef.current)
-    svg.selectAll('*').remove()
-
-    const g = svg.append('g')
-    const R = 16
-
-    const sim = d3
-      .forceSimulation<GraphNode>(graphData.nodes as GraphNode[])
-      .force(
-        'link',
-        d3.forceLink<GraphNode, GraphEdge>(graphData.edges as GraphEdge[])
-          .id((d) => d.id)
-          .distance(60)
-          .strength(0.3)
-      )
-      .force('charge', d3.forceManyBody().strength(-60))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide(R + 4))
-
-    const link = g
-      .selectAll('line')
-      .data(graphData.edges as GraphEdge[])
-      .enter()
-      .append('line')
-      .attr('stroke', (d) => {
-        const r = d.reasons[0] as RelationType | undefined
-        return r ? RELATION_COLORS[r] : '#2A2A2A'
-      })
-      .attr('stroke-width', 1)
-      .attr('stroke-opacity', 0.3)
-
-    const defs = svg.append('defs')
-    graphData.nodes.forEach((n: GraphNode) => {
-      defs.append('clipPath').attr('id', `mc-${n.id}`).append('circle').attr('r', R - 1)
-    })
-
-    const node = g
-      .selectAll('g.node')
-      .data(graphData.nodes as GraphNode[])
-      .enter()
-      .append('g')
-
-    node.append('circle').attr('r', R).attr('fill', '#1A1A1A').attr('stroke', '#2A2A2A').attr('stroke-width', 1)
-    node
-      .append('image')
-      .attr('href', (d) => d.record.cover_image_url || '')
-      .attr('width', (R - 1) * 2)
-      .attr('height', (R - 1) * 2)
-      .attr('x', -(R - 1))
-      .attr('y', -(R - 1))
-      .attr('clip-path', (d) => `url(#mc-${d.id})`)
-      .attr('preserveAspectRatio', 'xMidYMid slice')
-
-    sim.on('tick', () => {
-      link
-        .attr('x1', (d) => (d.source as GraphNode).x ?? 0)
-        .attr('y1', (d) => (d.source as GraphNode).y ?? 0)
-        .attr('x2', (d) => (d.target as GraphNode).x ?? 0)
-        .attr('y2', (d) => (d.target as GraphNode).y ?? 0)
-      node.attr('transform', (d) => `translate(${d.x ?? 0},${d.y ?? 0})`)
-    })
-
-    return () => sim.stop()
-  }, [graphData, width, height])
-
-  useEffect(() => {
-    const cleanup = draw()
-    return () => { cleanup?.() }
-  }, [draw])
-
-  if (graphData.nodes.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-[#5A5248]">
-        <div className="text-center">
-          <Network className="w-8 h-8 mx-auto mb-2 opacity-20" />
-          <p className="text-xs">Adicione discos para ver o grafo</p>
-        </div>
-      </div>
-    )
-  }
-
-  return <svg ref={svgRef} width={width} height={height} style={{ background: '#0A0A0A' }} />
-}
 
 /* ── Horizontal scroll carousel helper ── */
 function Carousel({ children }: { children: React.ReactNode }) {
@@ -153,22 +58,6 @@ export function Home() {
   const { data: sessions = [] } = useSessions()
   const { user } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
-  const graphContainerRef = useRef<HTMLDivElement>(null)
-  const [graphDims, setGraphDims] = useState({ width: 400, height: 260 })
-
-  useEffect(() => {
-    const update = () => {
-      if (graphContainerRef.current) {
-        setGraphDims({
-          width: graphContainerRef.current.offsetWidth,
-          height: graphContainerRef.current.offsetHeight,
-        })
-      }
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
 
   const totalDuration = records.reduce((acc, r) => acc + (r.total_duration_seconds || 0), 0)
 
@@ -183,6 +72,15 @@ export function Home() {
     () => [...records].sort(() => Math.random() - 0.5),
     [records]
   )
+
+  // Pick a random featured record (stable per render)
+  const featuredRecord = useMemo(() => {
+    if (records.length === 0) return null
+    // Prefer records with cover images
+    const withCovers = records.filter((r) => r.cover_image_url)
+    const pool = withCovers.length > 0 ? withCovers : records
+    return pool[Math.floor(Math.random() * pool.length)]
+  }, [records])
 
   if (!user) {
     return (
@@ -220,25 +118,80 @@ export function Home() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* 1. Mini Graph Card */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <Link to="/graph">
-          <Card className="overflow-hidden card-hover cursor-pointer">
-            <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <div className="flex items-center gap-2">
-                <Network className="w-4 h-4 text-[#C9A84C]" />
-                <span className="text-xs font-semibold text-[#9A9080] uppercase tracking-wider">
-                  Vitrola Graph
-                </span>
+      {/* 1. Featured Record Showcase */}
+      {featuredRecord && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <Link to={`/shelf/${featuredRecord.id}`}>
+            <Card className="overflow-hidden card-hover cursor-pointer">
+              <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <Disc3 className="w-4 h-4 text-[#C9A84C]" />
+                  <span className="text-xs font-semibold text-[#9A9080] uppercase tracking-wider">
+                    Disco em destaque
+                  </span>
+                </div>
+                <span className="text-xs text-[#5A5248]">Ver disco →</span>
               </div>
-              <span className="text-xs text-[#5A5248]">Ver completo →</span>
-            </div>
-            <div ref={graphContainerRef} className="w-full h-[260px]">
-              <MiniGraph width={graphDims.width} height={graphDims.height} />
-            </div>
-          </Card>
-        </Link>
-      </motion.div>
+              <div className="flex flex-col sm:flex-row gap-4 p-4">
+                {/* Cover */}
+                <div className="w-full sm:w-48 aspect-square rounded-lg overflow-hidden bg-[#1A1A1A] border border-[#2A2A2A] flex-shrink-0 mx-auto sm:mx-0 max-w-[200px]">
+                  {featuredRecord.cover_image_url ? (
+                    <img
+                      src={featuredRecord.cover_image_url}
+                      alt={featuredRecord.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center vinyl-ring">
+                      <Disc3 className="w-16 h-16 text-[#5A5248]" />
+                    </div>
+                  )}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h2 className="font-display text-xl sm:text-2xl font-bold text-[#F5F0E8] mb-1 truncate">
+                    {featuredRecord.title}
+                  </h2>
+                  <p className="text-sm text-[#C9A84C] mb-3">{featuredRecord.artist}</p>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {featuredRecord.year && (
+                      <span className="text-xs text-[#9A9080] flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {featuredRecord.year}
+                      </span>
+                    )}
+                    {featuredRecord.total_duration_seconds ? (
+                      <span className="text-xs text-[#9A9080] flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(featuredRecord.total_duration_seconds)}
+                      </span>
+                    ) : null}
+                    {featuredRecord.label && (
+                      <span className="text-xs text-[#9A9080] flex items-center gap-1">
+                        <Tag className="w-3 h-3" />
+                        {featuredRecord.label}
+                      </span>
+                    )}
+                  </div>
+                  {(featuredRecord.genres?.length || featuredRecord.styles?.length) ? (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {featuredRecord.genres?.slice(0, 2).map((g) => (
+                        <Badge key={g} variant="secondary" className="text-[10px]">{g}</Badge>
+                      ))}
+                      {featuredRecord.styles?.slice(0, 3).map((s) => (
+                        <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                  {featuredRecord.notes && (
+                    <p className="text-xs text-[#9A9080] line-clamp-2">{featuredRecord.notes}</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </Link>
+        </motion.div>
+      )}
 
       {/* 2. Shelf Carousel (random order) */}
       {shuffledRecords.length > 0 && (

@@ -13,14 +13,10 @@ export function Graph() {
 
   const {
     graphData,
-    activeRelations,
-    toggleRelation,
     minScore,
     setMinScore,
     highlightFavorites,
-    setHighlightFavorites,
     highlightUnplayed,
-    setHighlightUnplayed,
   } = useGraph()
 
   useEffect(() => {
@@ -69,14 +65,8 @@ export function Graph() {
       {/* Controls overlay */}
       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 max-h-[calc(100dvh-6rem)] overflow-y-auto">
         <GraphControls
-          activeRelations={activeRelations}
-          onToggle={toggleRelation}
           minScore={minScore}
           onMinScoreChange={setMinScore}
-          highlightFavorites={highlightFavorites}
-          onHighlightFavorites={setHighlightFavorites}
-          highlightUnplayed={highlightUnplayed}
-          onHighlightUnplayed={setHighlightUnplayed}
           nodeCount={graphData.nodes.length}
           edgeCount={graphData.edges.length}
         />
@@ -98,7 +88,7 @@ export function Graph() {
           <div className="text-center">
             <Network className="w-12 h-12 mx-auto mb-3 opacity-20" />
             <p className="text-sm">Nenhuma conexão encontrada com os filtros atuais.</p>
-            <p className="text-xs mt-1">Reduza o score mínimo ou ative mais tipos de relação.</p>
+            <p className="text-xs mt-1">Tente a intensidade "Explorar" para ver mais conexões.</p>
           </div>
         </div>
       )}

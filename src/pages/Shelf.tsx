@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Grid3X3, List, Music2, Tag, Search, SlidersHorizontal, Camera, Loader2
+  Grid3X3, List, Music2, Tag, Search, SlidersHorizontal, Camera, Loader2,
+  Share2, Copy, Check, Trash2
 } from 'lucide-react'
 import { useRecords } from '@/hooks/useRecords'
+import { useShareToken, useCreateShareToken, useDeleteShareToken } from '@/hooks/useSharedCollection'
 import { useAppStore } from '@/store/useAppStore'
 import { formatDuration } from '@/lib/discogs'
 import { RecordCard } from '@/components/record/RecordCard'
@@ -12,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { toast } from '@/hooks/useToast'
 import type { VinylRecord } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +41,37 @@ export function Shelf() {
   } = useAppStore()
 
   const [showFilters, setShowFilters] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const { data: shareToken, isLoading: shareLoading } = useShareToken()
+  const createShare = useCreateShareToken()
+  const deleteShare = useDeleteShareToken()
+
+  const shareUrl = shareToken
+    ? `${window.location.origin}${window.location.pathname}#/shared/${shareToken}`
+    : null
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) return
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    toast({ title: 'Link copiado!', variant: 'success' })
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCreateShare = () => {
+    createShare.mutate(undefined, {
+      onError: () => toast({ title: 'Erro ao criar link', variant: 'destructive' }),
+    })
+  }
+
+  const handleDeleteShare = () => {
+    if (!confirm('Desativar compartilhamento? O link atual deixará de funcionar.')) return
+    deleteShare.mutate(undefined, {
+      onSuccess: () => toast({ title: 'Compartilhamento desativado', variant: 'success' }),
+      onError: () => toast({ title: 'Erro ao desativar', variant: 'destructive' }),
+    })
+  }
 
   const allGenres = useMemo(() => {
     const g = new Set(records.flatMap((r) => r.genres || []))
@@ -107,11 +142,16 @@ export function Shelf() {
             {records.length} discos · {formatDuration(totalDuration)}
           </p>
         </div>
-        <Link to="/scanner">
-          <Button>
-            <Camera className="w-4 h-4 mr-2" /> Adicionar
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setShowShare(true)} title="Compartilhar">
+            <Share2 className="w-4 h-4" />
           </Button>
-        </Link>
+          <Link to="/scanner">
+            <Button>
+              <Camera className="w-4 h-4 mr-2" /> Adicionar
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Controls */}
@@ -304,6 +344,57 @@ export function Shelf() {
           ))}
         </div>
       )}
+
+      {/* Share dialog */}
+      <Dialog open={showShare} onOpenChange={setShowShare}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compartilhar coleção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {shareLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-[#C9A84C]" />
+              </div>
+            ) : shareToken ? (
+              <>
+                <p className="text-sm text-[#9A9080]">
+                  Qualquer pessoa com este link pode ver sua coleção (somente leitura).
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={shareUrl || ''}
+                    className="text-xs font-mono"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-400 border-red-400/30 hover:bg-red-400/10"
+                  onClick={handleDeleteShare}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" /> Desativar link
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-[#9A9080]">
+                  Gere um link público para compartilhar sua discoteca com amigos. Eles poderão ver seus álbuns e estatísticas, mas não poderão editar nada.
+                </p>
+                <Button onClick={handleCreateShare} disabled={createShare.isPending}>
+                  {createShare.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Share2 className="w-4 h-4 mr-2" /> Gerar link de compartilhamento
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
