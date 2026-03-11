@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ArrowLeft, Play, Edit, Trash2, Clock, Disc3, Calendar, MapPin, Tag, Loader2
+  ArrowLeft, Play, Edit, Trash2, Clock, Disc3, Calendar, MapPin, Tag, Loader2,
+  BookOpen, ChevronDown, ExternalLink, Info
 } from 'lucide-react'
 import { useRecord, useDeleteRecord, usePlayRecord, useUpdateRecord } from '@/hooks/useRecords'
+import { useAlbumInfo } from '@/hooks/useAlbumInfo'
 import { toast } from '@/hooks/useToast'
 import { formatDuration, formatTotalDuration } from '@/lib/discogs'
 import { getConditionColor, formatYear } from '@/lib/utils'
@@ -18,6 +21,12 @@ export function RecordDetail() {
   const deleteRecord = useDeleteRecord()
   const playRecord = usePlayRecord()
   const updateRecord = useUpdateRecord()
+  const albumInfo = useAlbumInfo(
+    record?.title ?? '',
+    record?.artist ?? '',
+    record?.discogs_id ?? null
+  )
+  const [aboutOpen, setAboutOpen] = useState(true)
 
   if (isLoading) {
     return (
@@ -232,6 +241,117 @@ export function RecordDetail() {
           </div>
         </motion.div>
       )}
+
+      {/* About this record */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="mt-10"
+      >
+        <button
+          onClick={() => setAboutOpen(!aboutOpen)}
+          className="flex items-center gap-2 w-full group"
+        >
+          <BookOpen className="w-5 h-5 text-[#C9A84C]" />
+          <h2 className="font-display text-xl font-semibold text-[#F5F0E8]">About this record</h2>
+          <ChevronDown className={`w-4 h-4 text-[#5A5248] transition-transform ${aboutOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        <AnimatePresence>
+          {aboutOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 space-y-4">
+                {albumInfo.isLoading && (
+                  <div className="space-y-3">
+                    <div className="h-4 bg-[#1A1A1A] rounded animate-pulse w-3/4" />
+                    <div className="h-4 bg-[#1A1A1A] rounded animate-pulse w-full" />
+                    <div className="h-4 bg-[#1A1A1A] rounded animate-pulse w-5/6" />
+                    <div className="h-4 bg-[#1A1A1A] rounded animate-pulse w-2/3" />
+                  </div>
+                )}
+
+                {!albumInfo.isLoading && !albumInfo.hasContent && (
+                  <p className="text-sm text-[#5A5248] italic">
+                    No additional information found for this record.
+                  </p>
+                )}
+
+                {/* Wikipedia - Album */}
+                {albumInfo.wikiAlbum && (
+                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-3.5 h-3.5 text-[#C9A84C]" />
+                      <span className="text-xs font-semibold text-[#C9A84C] uppercase tracking-wider">
+                        About the album
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#9A9080] leading-relaxed">
+                      {albumInfo.wikiAlbum.extract}
+                    </p>
+                    {albumInfo.wikiAlbum.content_urls?.desktop?.page && (
+                      <a
+                        href={albumInfo.wikiAlbum.content_urls.desktop.page}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-[#C9A84C] hover:text-[#E8B84B] mt-3 transition-colors"
+                      >
+                        Read more on Wikipedia <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Wikipedia - Artist */}
+                {albumInfo.wikiArtist && (
+                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-3.5 h-3.5 text-[#C9A84C]" />
+                      <span className="text-xs font-semibold text-[#C9A84C] uppercase tracking-wider">
+                        About {record.artist}
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#9A9080] leading-relaxed">
+                      {albumInfo.wikiArtist.extract}
+                    </p>
+                    {albumInfo.wikiArtist.content_urls?.desktop?.page && (
+                      <a
+                        href={albumInfo.wikiArtist.content_urls.desktop.page}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-[#C9A84C] hover:text-[#E8B84B] mt-3 transition-colors"
+                      >
+                        Read more on Wikipedia <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Discogs notes */}
+                {albumInfo.discogsNotes && (
+                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Disc3 className="w-3.5 h-3.5 text-[#C9A84C]" />
+                      <span className="text-xs font-semibold text-[#C9A84C] uppercase tracking-wider">
+                        Discogs notes
+                      </span>
+                    </div>
+                    <p className="text-sm text-[#9A9080] leading-relaxed whitespace-pre-line">
+                      {albumInfo.discogsNotes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   )
 }
