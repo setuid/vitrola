@@ -28,13 +28,7 @@ export function useAuth() {
       options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}` },
     })
 
-  const signInWithEmail = (email: string, password: string) =>
-    supabase.auth.signInWithPassword({ email, password })
-
-  const signUpWithEmail = (email: string, password: string) =>
-    supabase.auth.signUp({ email, password })
-
   const signOut = () => supabase.auth.signOut()
 
-  return { user, session, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }
+  return { user, session, loading, signInWithGoogle, signOut }
 }

@@ -39,6 +39,7 @@ export interface DiscogsRelease {
   tracklist: DiscogsTrack[]
   images: { uri: string; type: string }[]
   formats: { name: string; descriptions: string[] }[]
+  notes?: string
 }
 
 export async function searchDiscogs(query: string, type = 'release'): Promise<DiscogsSearchResult[]> {

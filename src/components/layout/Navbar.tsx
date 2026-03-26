@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Disc3, BookOpen, Music, Network, Settings, LogOut, LogIn } from 'lucide-react'
+import { Disc3, BookOpen, Music, Network, Settings, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -58,17 +58,10 @@ export function Navbar() {
               <Settings className="w-4 h-4" />
             </Button>
           </Link>
-          {user ? (
+          {user && (
             <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
               <LogOut className="w-4 h-4" />
             </Button>
-          ) : (
-            <Link to="/settings">
-              <Button size="sm" variant="outline">
-                <LogIn className="w-4 h-4 mr-1" />
-                Entrar
-              </Button>
-            </Link>
           )}
         </div>
       </div>
