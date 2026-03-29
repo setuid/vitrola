@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   BookOpen, Music, Network, Camera, Disc3, ChevronLeft, ChevronRight, Calendar, Clock, Tag, Loader2,
+  DollarSign, RefreshCw, X,
 } from 'lucide-react'
 import { useRecords } from '@/hooks/useRecords'
 import { useSessions } from '@/hooks/useSessions'
 import { useAuth } from '@/hooks/useAuth'
+import { useCollectionValue } from '@/hooks/useMarketplaceStats'
 import { formatDuration } from '@/lib/discogs'
+import { formatPrice } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +58,7 @@ export function Home() {
   const { data: records = [] } = useRecords()
   const { data: sessions = [] } = useSessions()
   const { user, signInWithGoogle } = useAuth()
+  const collectionValue = useCollectionValue(records)
   const [googleLoading, setGoogleLoading] = useState(false)
 
   const totalDuration = records.reduce((acc, r) => acc + (r.total_duration_seconds || 0), 0)
@@ -279,7 +283,7 @@ export function Home() {
         transition={{ delay: 0.15 }}
       >
         <p className="text-xs text-[#5A5248] uppercase tracking-wider mb-3">Analytics</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <Disc3 className="w-4 h-4 text-[#C9A84C]" />
@@ -307,6 +311,48 @@ export function Home() {
                 </span>
               )) : <span className="text-xs text-[#5A5248]">—</span>}
             </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-[#C9A84C]" />
+                <span className="text-xs text-[#5A5248]">Valor estimado</span>
+              </div>
+              {collectionValue.isFetching ? (
+                <button onClick={collectionValue.cancel} className="text-[#5A5248] hover:text-[#F5F0E8] transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <button onClick={collectionValue.refresh} className="text-[#5A5248] hover:text-[#C9A84C] transition-colors">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {collectionValue.isFetching ? (
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <RefreshCw className="w-3.5 h-3.5 text-[#C9A84C] animate-spin" />
+                  <span className="font-mono text-sm text-[#F5F0E8]">{collectionValue.progress}%</span>
+                </div>
+                <p className="text-[10px] text-[#5A5248]">Buscando cotações...</p>
+              </div>
+            ) : collectionValue.totalValue !== null ? (
+              <div>
+                <p className="font-mono text-lg font-semibold text-[#F5F0E8] truncate">
+                  {formatPrice(collectionValue.totalValue, collectionValue.currency)}
+                </p>
+                <p className="text-[10px] text-[#5A5248]">
+                  {collectionValue.pricedCount} de {collectionValue.totalWithDiscogs} cotados
+                </p>
+              </div>
+            ) : (
+              <button onClick={collectionValue.refresh} className="text-left">
+                <p className="font-mono text-lg font-semibold text-[#F5F0E8]">—</p>
+                <p className="text-[10px] text-[#C9A84C] hover:text-[#E8B84B] transition-colors">
+                  Atualizar cotações
+                </p>
+              </button>
+            )}
           </Card>
         </div>
       </motion.div>
