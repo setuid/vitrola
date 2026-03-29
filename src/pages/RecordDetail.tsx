@@ -3,12 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Play, Edit, Trash2, Clock, Disc3, Calendar, MapPin, Tag, Loader2,
-  BookOpen, ChevronDown, ExternalLink, Info
+  BookOpen, ChevronDown, ExternalLink, Info, DollarSign
 } from 'lucide-react'
 import { useRecord, useDeleteRecord, usePlayRecord, useUpdateRecord } from '@/hooks/useRecords'
 import { useAlbumInfo } from '@/hooks/useAlbumInfo'
+import { useRecordPrice } from '@/hooks/useMarketplaceStats'
 import { toast } from '@/hooks/useToast'
 import { formatDuration, formatTotalDuration } from '@/lib/discogs'
+import { formatPrice } from '@/lib/currency'
 import { getConditionColor, formatYear } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +28,7 @@ export function RecordDetail() {
     record?.artist ?? '',
     record?.discogs_id ?? null
   )
+  const priceInfo = useRecordPrice(record?.discogs_id ?? null)
   const [aboutOpen, setAboutOpen] = useState(true)
 
   if (isLoading) {
@@ -189,6 +192,27 @@ export function RecordDetail() {
               </span>
             )}
           </div>
+
+          {/* Marketplace price */}
+          {record.discogs_id && (
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-3.5 h-3.5 text-[#5A5248]" />
+              {priceInfo.isLoading ? (
+                <div className="h-4 w-24 bg-[#1A1A1A] rounded animate-pulse" />
+              ) : priceInfo.data?.lowestPrice !== null && priceInfo.data?.lowestPrice !== undefined ? (
+                <>
+                  <span className="font-mono text-[#C9A84C] font-semibold">
+                    {formatPrice(priceInfo.data.lowestPrice, priceInfo.data.currency)}
+                  </span>
+                  <span className="text-xs text-[#5A5248]">
+                    · {priceInfo.data.numForSale} à venda
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-[#5A5248]">Sem cotação no Discogs</span>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           {record.notes && (

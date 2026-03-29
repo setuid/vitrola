@@ -6,6 +6,8 @@ import {
   Share2, Copy, Check, Trash2
 } from 'lucide-react'
 import { useRecords } from '@/hooks/useRecords'
+import { useCollectionValue } from '@/hooks/useMarketplaceStats'
+import { formatPrice } from '@/lib/currency'
 import { useShareToken, useCreateShareToken, useDeleteShareToken } from '@/hooks/useSharedCollection'
 import { useAppStore } from '@/store/useAppStore'
 import { formatDuration } from '@/lib/discogs'
@@ -103,6 +105,7 @@ export function Shelf() {
   }, [records, searchQuery, selectedGenres, showFavoritesOnly, sortBy, sortOrder])
 
   const totalDuration = records.reduce((acc, r) => acc + (r.total_duration_seconds || 0), 0)
+  const { totalValue, currency } = useCollectionValue(records)
 
   if (isLoading) {
     return (
@@ -140,6 +143,7 @@ export function Shelf() {
           <h1 className="font-display text-3xl font-bold text-[#F5F0E8]">Minha Estante</h1>
           <p className="text-[#9A9080] text-sm mt-0.5">
             {records.length} discos · {formatDuration(totalDuration)}
+            {totalValue !== null && ` · ${formatPrice(totalValue, currency)}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
