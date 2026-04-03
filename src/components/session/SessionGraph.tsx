@@ -10,7 +10,7 @@ interface SessionGraphProps {
 }
 
 export function SessionGraph({ records, onNodeClick }: SessionGraphProps) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(600)
 
