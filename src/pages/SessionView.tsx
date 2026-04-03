@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SessionGraph } from '@/components/session/SessionGraph'
 
 export function SessionView() {
   const { id } = useParams()
@@ -214,6 +215,12 @@ export function SessionView() {
           </div>
         )}
       </motion.div>
+
+      {/* Session graph */}
+      <SessionGraph
+        records={records.map((item) => item.record)}
+        onNodeClick={(node) => navigate(`/shelf/${node.id}`)}
+      />
 
       {/* Duration footer */}
       {totalDuration > 0 && (

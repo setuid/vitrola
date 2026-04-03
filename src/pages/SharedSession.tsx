@@ -5,6 +5,7 @@ import { usePublicSession } from '@/hooks/useSharedSession'
 import { formatDuration } from '@/lib/discogs'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { SessionGraph } from '@/components/session/SessionGraph'
 
 export function SharedSession() {
   const { token } = useParams<{ token: string }>()
@@ -153,6 +154,12 @@ export function SharedSession() {
             </div>
           )}
         </motion.div>
+
+        {/* Session graph */}
+        <SessionGraph
+          records={records.map((item) => item.record)}
+          onNodeClick={() => {}}
+        />
 
         {/* Duration footer */}
         {totalDuration > 0 && (
