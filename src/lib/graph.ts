@@ -1,8 +1,16 @@
 import type { VinylRecord } from './supabase'
 
+export type GraphRecord = Pick<VinylRecord,
+  'id' | 'title' | 'artist' | 'cover_image_url' | 'year' | 'genres' | 'styles' | 'rating'
+> & {
+  label?: string | null
+  country?: string | null
+  play_count?: number
+}
+
 export interface GraphNode {
   id: string
-  record: VinylRecord
+  record: GraphRecord
   x?: number
   y?: number
   vx?: number
@@ -43,11 +51,11 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   favorites: 'Ambos favoritos',
 }
 
-const MIN_SCORE = 25
+const DEFAULT_MIN_SCORE = 25
 
 export function calculateSimilarityScore(
-  a: VinylRecord,
-  b: VinylRecord
+  a: GraphRecord,
+  b: GraphRecord
 ): { score: number; reasons: RelationType[] } {
   let score = 0
   const reasons: RelationType[] = []
@@ -109,14 +117,14 @@ export function calculateSimilarityScore(
   return { score, reasons }
 }
 
-export function buildGraphData(records: VinylRecord[]): GraphData {
+export function buildGraphData(records: GraphRecord[], minScore = DEFAULT_MIN_SCORE): GraphData {
   const nodes: GraphNode[] = records.map((r) => ({ id: r.id, record: r }))
   const edges: GraphEdge[] = []
 
   for (let i = 0; i < records.length; i++) {
     for (let j = i + 1; j < records.length; j++) {
       const { score, reasons } = calculateSimilarityScore(records[i], records[j])
-      if (score >= MIN_SCORE) {
+      if (score >= minScore) {
         edges.push({
           source: records[i].id,
           target: records[j].id,

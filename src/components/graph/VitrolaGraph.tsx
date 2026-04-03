@@ -10,6 +10,7 @@ interface VitrolaGraphProps {
   highlightUnplayed?: boolean
   width?: number
   height?: number
+  onNodeClick?: (node: GraphNode) => void
 }
 
 const NODE_RADIUS = 28
@@ -20,6 +21,7 @@ export function VitrolaGraph({
   highlightUnplayed = false,
   width = 800,
   height = 600,
+  onNodeClick,
 }: VitrolaGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const navigate = useNavigate()
@@ -104,7 +106,7 @@ export function VitrolaGraph({
             d.fy = null
           })
       )
-      .on('click', (_, d) => navigate(`/shelf/${d.id}`))
+      .on('click', (_, d) => onNodeClick ? onNodeClick(d) : navigate(`/shelf/${d.id}`))
       .on('mouseover', function (event, d) {
         setTooltip({ x: event.clientX, y: event.clientY, node: d })
         d3.select(this).select('circle').attr('stroke', '#C9A84C').attr('stroke-width', 2)
@@ -168,7 +170,7 @@ export function VitrolaGraph({
     })
 
     return () => simulation.stop()
-  }, [data, width, height, highlightFavorites, highlightUnplayed, navigate])
+  }, [data, width, height, highlightFavorites, highlightUnplayed, navigate, onNodeClick])
 
   useEffect(() => {
     const cleanup = draw()

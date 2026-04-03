@@ -1,16 +1,55 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Music, Clock, Disc3, Pencil, Plus, Loader2, Calendar } from 'lucide-react'
+import { ArrowLeft, Music, Clock, Disc3, Pencil, Plus, Loader2, Calendar, Share2, Copy, Check, Trash2 } from 'lucide-react'
 import { useSession } from '@/hooks/useSessions'
+import { useSessionShareToken, useCreateSessionShare, useDeleteSessionShare } from '@/hooks/useSharedSession'
+import { toast } from '@/hooks/useToast'
 import { formatDuration } from '@/lib/discogs'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { SessionGraph } from '@/components/session/SessionGraph'
 
 export function SessionView() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data, isLoading } = useSession(id || '')
+  const { data: shareToken, isLoading: shareLoading } = useSessionShareToken(id || '')
+  const createShare = useCreateSessionShare()
+  const deleteShare = useDeleteSessionShare()
+  const [showShare, setShowShare] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const shareUrl = shareToken
+    ? `${window.location.origin}${window.location.pathname}#/shared/session/${shareToken}`
+    : null
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) return
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    toast({ title: 'Link copiado!', variant: 'success' })
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleCreateShare = () => {
+    if (!id) return
+    createShare.mutate(id, {
+      onError: () => toast({ title: 'Erro ao criar link', variant: 'destructive' }),
+    })
+  }
+
+  const handleDeleteShare = () => {
+    if (!id) return
+    if (!confirm('Desativar compartilhamento? O link atual deixará de funcionar.')) return
+    deleteShare.mutate(id, {
+      onSuccess: () => toast({ title: 'Compartilhamento desativado', variant: 'success' }),
+      onError: () => toast({ title: 'Erro ao desativar', variant: 'destructive' }),
+    })
+  }
 
   if (isLoading) {
     return (
@@ -43,6 +82,10 @@ export function SessionView() {
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1 min-w-0" />
+        <Button variant="outline" size="sm" onClick={() => setShowShare(true)}>
+          <Share2 className="w-3.5 h-3.5 mr-1.5" />
+          Compartilhar
+        </Button>
         <Link to={`/sessions/${id}/edit`}>
           <Button variant="outline" size="sm">
             <Pencil className="w-3.5 h-3.5 mr-1.5" />
@@ -173,6 +216,12 @@ export function SessionView() {
         )}
       </motion.div>
 
+      {/* Session graph */}
+      <SessionGraph
+        records={records.map((item) => item.record)}
+        onNodeClick={(node) => navigate(`/shelf/${node.id}`)}
+      />
+
       {/* Duration footer */}
       {totalDuration > 0 && (
         <motion.div
@@ -187,6 +236,57 @@ export function SessionView() {
           </div>
         </motion.div>
       )}
+
+      {/* Share dialog */}
+      <Dialog open={showShare} onOpenChange={setShowShare}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Compartilhar sessão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {shareLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-[#C9A84C]" />
+              </div>
+            ) : shareToken ? (
+              <>
+                <p className="text-sm text-[#9A9080]">
+                  Qualquer pessoa com este link pode ver esta sessão (somente leitura).
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={shareUrl || ''}
+                    className="text-xs font-mono"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-400 border-red-400/30 hover:bg-red-400/10"
+                  onClick={handleDeleteShare}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" /> Desativar link
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-[#9A9080]">
+                  Gere um link público para compartilhar esta sessão de escuta com amigos. Eles poderão ver os discos e a ordem da sessão, mas não poderão editar nada.
+                </p>
+                <Button onClick={handleCreateShare} disabled={createShare.isPending}>
+                  {createShare.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Share2 className="w-4 h-4 mr-2" /> Gerar link de compartilhamento
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

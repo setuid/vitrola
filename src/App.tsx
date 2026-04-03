@@ -12,6 +12,7 @@ import { SessionView } from '@/pages/SessionView'
 import { Graph } from '@/pages/Graph'
 import { Settings } from '@/pages/Settings'
 import { SharedCollection } from '@/pages/SharedCollection'
+import { SharedSession } from '@/pages/SharedSession'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,7 +28,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <HashRouter>
         <Routes>
-          {/* Public route — no auth, no navbar */}
+          {/* Public routes — no auth, no navbar */}
+          <Route path="/shared/session/:token" element={<SharedSession />} />
           <Route path="/shared/:token" element={<SharedCollection />} />
 
           <Route element={<Layout />}>
