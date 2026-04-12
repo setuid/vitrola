@@ -9,6 +9,7 @@ import { useRecords } from '@/hooks/useRecords'
 import { useSessions } from '@/hooks/useSessions'
 import { useAuth } from '@/hooks/useAuth'
 import { useCollectionValue } from '@/hooks/useMarketplaceStats'
+import { usePullToRefresh } from '@/hooks/usePullToRefresh'
 import { formatDuration } from '@/lib/discogs'
 import { formatPrice } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
@@ -55,11 +56,20 @@ function Carousel({ children }: { children: React.ReactNode }) {
 
 /* ── Home Page ── */
 export function Home() {
-  const { data: records = [] } = useRecords()
-  const { data: sessions = [] } = useSessions()
+  const { data: records = [], refetch: refetchRecords } = useRecords()
+  const { data: sessions = [], refetch: refetchSessions } = useSessions()
   const { user, signInWithGoogle } = useAuth()
   const collectionValue = useCollectionValue(records)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [refreshSeed, setRefreshSeed] = useState(0)
+
+  const { pullDistance, isRefreshing, threshold } = usePullToRefresh({
+    enabled: !!user,
+    onRefresh: async () => {
+      setRefreshSeed((s) => s + 1)
+      await Promise.all([refetchRecords(), refetchSessions()])
+    },
+  })
 
   const totalDuration = records.reduce((acc, r) => acc + (r.total_duration_seconds || 0), 0)
 
@@ -72,17 +82,19 @@ export function Home() {
 
   const shuffledRecords = useMemo(
     () => [...records].sort(() => Math.random() - 0.5),
-    [records]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [records, refreshSeed]
   )
 
-  // Pick a random featured record (stable per render)
+  // Pick a random featured record. Re-randomizes on pull-to-refresh via refreshSeed.
   const featuredRecord = useMemo(() => {
     if (records.length === 0) return null
     // Prefer records with cover images
     const withCovers = records.filter((r) => r.cover_image_url)
     const pool = withCovers.length > 0 ? withCovers : records
     return pool[Math.floor(Math.random() * pool.length)]
-  }, [records])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [records, refreshSeed])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -133,8 +145,42 @@ export function Home() {
     )
   }
 
+  const indicatorProgress = Math.min(pullDistance / threshold, 1)
+  const contentShift = isRefreshing ? threshold / 2 : pullDistance
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <>
+      {/* Pull-to-refresh indicator (fixed below navbar) */}
+      {(pullDistance > 0 || isRefreshing) && (
+        <div
+          className="fixed left-1/2 z-40 pointer-events-none"
+          style={{
+            top: `calc(3.5rem + 8px)`,
+            transform: `translate(-50%, ${Math.max(0, contentShift - 48)}px)`,
+            opacity: isRefreshing ? 1 : indicatorProgress,
+            transition: isRefreshing ? 'opacity 0.2s' : 'none',
+          }}
+        >
+          <div className="w-10 h-10 rounded-full bg-[#0A0A0A] border border-[#C9A84C]/40 flex items-center justify-center shadow-lg">
+            <Disc3
+              className={`w-5 h-5 text-[#C9A84C] ${isRefreshing ? 'animate-spin' : ''}`}
+              style={{
+                transform: isRefreshing ? undefined : `rotate(${pullDistance * 4}deg)`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div
+        className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6"
+        style={{
+          transform: contentShift > 0 ? `translateY(${contentShift}px)` : undefined,
+          transition: pullDistance > 0 ? 'none' : 'transform 0.25s ease-out',
+          overscrollBehaviorY: 'contain',
+        }}
+      >
+
       {/* 1. Featured Record Showcase */}
       {featuredRecord && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -393,6 +439,7 @@ export function Home() {
           </Link>
         </motion.div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
