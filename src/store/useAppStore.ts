@@ -29,6 +29,10 @@ interface AppState {
 
   selectedConditions: string[]
   setSelectedConditions: (conds: string[]) => void
+
+  // Home page random shuffle seed — NOT persisted across reloads.
+  homeShuffleSeed: number
+  regenerateHomeShuffle: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -57,7 +61,25 @@ export const useAppStore = create<AppState>()(
 
       selectedConditions: [],
       setSelectedConditions: (selectedConditions) => set({ selectedConditions }),
+
+      homeShuffleSeed: Math.floor(Math.random() * 1e9),
+      regenerateHomeShuffle: () =>
+        set({ homeShuffleSeed: Math.floor(Math.random() * 1e9) }),
     }),
-    { name: 'vitrola-store' }
+    {
+      name: 'vitrola-store',
+      // Exclude homeShuffleSeed from persistence so each browser reload
+      // produces a fresh random order (but in-session navigation keeps it).
+      partialize: (state) => ({
+        viewMode: state.viewMode,
+        searchQuery: state.searchQuery,
+        selectedGenres: state.selectedGenres,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+        showFavoritesOnly: state.showFavoritesOnly,
+        yearRange: state.yearRange,
+        selectedConditions: state.selectedConditions,
+      }),
+    }
   )
 )

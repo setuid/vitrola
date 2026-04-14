@@ -10,6 +10,8 @@ import { useSessions } from '@/hooks/useSessions'
 import { useAuth } from '@/hooks/useAuth'
 import { useCollectionValue } from '@/hooks/useMarketplaceStats'
 import { usePullToRefresh } from '@/hooks/usePullToRefresh'
+import { useAppStore } from '@/store/useAppStore'
+import { shuffleWithSeed, pickWithSeed } from '@/lib/shuffle'
 import { formatDuration } from '@/lib/discogs'
 import { formatPrice } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
@@ -61,12 +63,13 @@ export function Home() {
   const { user, signInWithGoogle } = useAuth()
   const collectionValue = useCollectionValue(records)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [refreshSeed, setRefreshSeed] = useState(0)
+  const homeShuffleSeed = useAppStore((s) => s.homeShuffleSeed)
+  const regenerateHomeShuffle = useAppStore((s) => s.regenerateHomeShuffle)
 
   const { pullDistance, isRefreshing, threshold } = usePullToRefresh({
     enabled: !!user,
     onRefresh: async () => {
-      setRefreshSeed((s) => s + 1)
+      regenerateHomeShuffle()
       await Promise.all([refetchRecords(), refetchSessions()])
     },
   })
@@ -80,21 +83,20 @@ export function Home() {
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
 
+  // Seeded shuffle — order is stable across in-session navigation and only
+  // changes when the user triggers pull-to-refresh (which regenerates the seed).
   const shuffledRecords = useMemo(
-    () => [...records].sort(() => Math.random() - 0.5),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [records, refreshSeed]
+    () => shuffleWithSeed(records, homeShuffleSeed),
+    [records, homeShuffleSeed]
   )
 
-  // Pick a random featured record. Re-randomizes on pull-to-refresh via refreshSeed.
+  // Pick a featured record deterministically from the same seed.
   const featuredRecord = useMemo(() => {
     if (records.length === 0) return null
-    // Prefer records with cover images
     const withCovers = records.filter((r) => r.cover_image_url)
     const pool = withCovers.length > 0 ? withCovers : records
-    return pool[Math.floor(Math.random() * pool.length)]
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [records, refreshSeed])
+    return pickWithSeed(pool, homeShuffleSeed + 1)
+  }, [records, homeShuffleSeed])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
