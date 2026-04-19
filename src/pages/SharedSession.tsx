@@ -1,15 +1,52 @@
+import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Disc3, Music, Clock, Calendar, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Disc3, Music, Clock, Calendar, Loader2, Search, Plus, Check, ChevronDown, ChevronUp,
+} from 'lucide-react'
 import { usePublicSession } from '@/hooks/useSharedSession'
+import {
+  useSessionOwnerCollection,
+  usePublicSessionSuggestions,
+  useSubmitSuggestion,
+} from '@/hooks/useSessionSuggestions'
 import { formatDuration } from '@/lib/discogs'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { SessionGraph } from '@/components/session/SessionGraph'
 
 export function SharedSession() {
   const { token } = useParams<{ token: string }>()
   const { data, isLoading, isError } = usePublicSession(token)
+  const { data: collection = [] } = useSessionOwnerCollection(token)
+  const { data: suggestions = [] } = usePublicSessionSuggestions(token)
+  const submitSuggestion = useSubmitSuggestion(token)
+
+  const [showSuggest, setShowSuggest] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const suggestedRecordIds = useMemo(
+    () => new Set(suggestions.map((s) => s.record_id)),
+    [suggestions]
+  )
+
+  const sessionRecordIds = useMemo(
+    () => new Set(data?.records.map((r) => r.record.id) || []),
+    [data]
+  )
+
+  const filteredCollection = useMemo(() => {
+    if (!search.trim()) return collection
+    const q = search.toLowerCase()
+    return collection.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.artist.toLowerCase().includes(q) ||
+        r.genres?.some((g) => g.toLowerCase().includes(q))
+    )
+  }, [collection, search])
 
   if (isLoading) {
     return (
@@ -34,6 +71,10 @@ export function SharedSession() {
     (acc, item) => acc + (item.record.total_duration_seconds || 0),
     0
   )
+
+  const handleSuggest = (recordId: string) => {
+    submitSuggestion.mutate(recordId)
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
@@ -160,6 +201,171 @@ export function SharedSession() {
           records={records.map((item) => item.record)}
           onNodeClick={() => {}}
         />
+
+        {/* Suggest records section */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <button
+            onClick={() => setShowSuggest(!showSuggest)}
+            className="flex items-center gap-2 w-full text-left mb-3"
+          >
+            <Plus className="w-4 h-4 text-[#C9A84C]" />
+            <p className="text-xs text-[#C9A84C] uppercase tracking-wider font-semibold">
+              Sugerir discos para esta sessão
+            </p>
+            {showSuggest
+              ? <ChevronUp className="w-3.5 h-3.5 text-[#C9A84C] ml-auto" />
+              : <ChevronDown className="w-3.5 h-3.5 text-[#C9A84C] ml-auto" />}
+          </button>
+
+          <AnimatePresence>
+            {showSuggest && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Card className="p-4 space-y-3">
+                  <p className="text-sm text-[#9A9080]">
+                    Escolha discos da coleção para sugerir ao dono da sessão.
+                  </p>
+
+                  {/* Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5248]" />
+                    <Input
+                      placeholder="Buscar por título, artista ou gênero..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 text-sm"
+                    />
+                  </div>
+
+                  {/* Collection grid */}
+                  <div className="max-h-[400px] overflow-y-auto space-y-1.5 pr-1">
+                    {filteredCollection.length === 0 ? (
+                      <p className="text-sm text-[#5A5248] text-center py-4">
+                        {search ? 'Nenhum disco encontrado.' : 'Carregando coleção...'}
+                      </p>
+                    ) : (
+                      filteredCollection.map((r) => {
+                        const alreadySuggested = suggestedRecordIds.has(r.id)
+                        const inSession = sessionRecordIds.has(r.id)
+                        return (
+                          <div
+                            key={r.id}
+                            className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                              alreadySuggested || inSession
+                                ? 'opacity-50'
+                                : 'hover:bg-[#1A1A1A]'
+                            }`}
+                          >
+                            <div className="w-10 h-10 rounded-md overflow-hidden bg-[#1A1A1A] flex-shrink-0">
+                              {r.cover_image_url ? (
+                                <img
+                                  src={r.cover_image_url}
+                                  alt={r.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Disc3 className="w-4 h-4 text-[#5A5248]" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#F5F0E8] truncate">
+                                {r.title}
+                              </p>
+                              <p className="text-xs text-[#9A9080] truncate">
+                                {r.artist}
+                                {r.year ? ` · ${r.year}` : ''}
+                              </p>
+                            </div>
+                            {inSession ? (
+                              <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                                Na sessão
+                              </Badge>
+                            ) : alreadySuggested ? (
+                              <span className="flex items-center gap-1 text-[10px] text-green-400 flex-shrink-0">
+                                <Check className="w-3 h-3" /> Sugerido
+                              </span>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs flex-shrink-0"
+                                onClick={() => handleSuggest(r.id)}
+                                disabled={submitSuggestion.isPending}
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Sugerir
+                              </Button>
+                            )}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Suggestions already made */}
+        {suggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <p className="text-xs text-[#5A5248] uppercase tracking-wider mb-3">
+              Sugestões ({suggestions.length})
+            </p>
+            <div className="space-y-1.5">
+              {suggestions.map((s) => (
+                <Card key={s.id}>
+                  <div className="flex items-center gap-3 p-2.5">
+                    <div className="w-9 h-9 rounded-md overflow-hidden bg-[#1A1A1A] flex-shrink-0">
+                      {s.record.cover_image_url ? (
+                        <img
+                          src={s.record.cover_image_url}
+                          alt={s.record.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Disc3 className="w-4 h-4 text-[#5A5248]" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#F5F0E8] truncate">
+                        {s.record.title}
+                      </p>
+                      <p className="text-xs text-[#9A9080] truncate">{s.record.artist}</p>
+                    </div>
+                    <Badge
+                      variant={
+                        s.status === 'accepted' ? 'default' :
+                        s.status === 'rejected' ? 'destructive' : 'secondary'
+                      }
+                      className="text-[10px] flex-shrink-0"
+                    >
+                      {s.status === 'accepted' ? 'Aceito' :
+                       s.status === 'rejected' ? 'Recusado' : 'Pendente'}
+                    </Badge>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Duration footer */}
         {totalDuration > 0 && (
