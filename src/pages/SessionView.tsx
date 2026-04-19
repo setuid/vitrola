@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Music, Clock, Disc3, Pencil, Plus, Loader2, Calendar, Share2, Copy, Check, Trash2, ThumbsUp, ThumbsDown, Lightbulb } from 'lucide-react'
-import { useSession } from '@/hooks/useSessions'
+import { useSession, useAddRecordToSession } from '@/hooks/useSessions'
 import { useSessionShareToken, useCreateSessionShare, useDeleteSessionShare } from '@/hooks/useSharedSession'
 import { useOwnerSessionSuggestions, useUpdateSuggestionStatus } from '@/hooks/useSessionSuggestions'
 import { toast } from '@/hooks/useToast'
@@ -23,6 +23,7 @@ export function SessionView() {
   const deleteShare = useDeleteSessionShare()
   const { data: suggestions = [] } = useOwnerSessionSuggestions(id)
   const updateStatus = useUpdateSuggestionStatus(id)
+  const addRecord = useAddRecordToSession()
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -267,8 +268,16 @@ export function SessionView() {
                         size="icon"
                         variant="ghost"
                         className="w-8 h-8 text-green-400 hover:text-green-300 hover:bg-green-400/10"
-                        onClick={() => updateStatus.mutate({ suggestionId: s.id, status: 'accepted' })}
-                        disabled={updateStatus.isPending}
+                        onClick={() => {
+                          const nextOrder = records.length > 0
+                            ? Math.max(...records.map((r) => r.order)) + 1
+                            : 0
+                          addRecord.mutate(
+                            { sessionId: id!, recordId: s.record_id, order: nextOrder },
+                            { onSuccess: () => updateStatus.mutate({ suggestionId: s.id, status: 'accepted' }) }
+                          )
+                        }}
+                        disabled={updateStatus.isPending || addRecord.isPending}
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                       </Button>
