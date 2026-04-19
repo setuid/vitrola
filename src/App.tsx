@@ -13,6 +13,7 @@ import { Graph } from '@/pages/Graph'
 import { Settings } from '@/pages/Settings'
 import { SharedCollection } from '@/pages/SharedCollection'
 import { SharedSession } from '@/pages/SharedSession'
+import { SharedRecordDetail } from '@/pages/SharedRecordDetail'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ export default function App() {
       <HashRouter>
         <Routes>
           {/* Public routes — no auth, no navbar */}
+          <Route path="/shared/session/:token/record/:recordId" element={<SharedRecordDetail />} />
           <Route path="/shared/session/:token" element={<SharedSession />} />
           <Route path="/shared/:token" element={<SharedCollection />} />
 
