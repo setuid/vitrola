@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Disc3, Music, Clock, Calendar, Loader2, Search, Plus, Check, ChevronDown, ChevronUp,
@@ -152,44 +152,46 @@ export function SharedSession() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 + i * 0.03 }}
                 >
-                  <Card>
-                    <div className="flex items-center gap-3 p-3">
-                      <span className="text-xs font-mono text-[#5A5248] w-6 text-right flex-shrink-0">
-                        {i + 1}.
-                      </span>
-                      <div className="w-12 h-12 rounded-md overflow-hidden bg-[#1A1A1A] flex-shrink-0">
-                        {item.record.cover_image_url ? (
-                          <img
-                            src={item.record.cover_image_url}
-                            alt={item.record.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Disc3 className="w-5 h-5 text-[#5A5248]" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#F5F0E8] truncate">
-                          {item.record.title}
-                        </p>
-                        <p className="text-xs text-[#9A9080] truncate">
-                          {item.record.artist}
-                        </p>
-                      </div>
-                      {item.side && item.side !== 'AB' && (
-                        <Badge variant="outline" className="text-[10px] flex-shrink-0">
-                          Lado {item.side}
-                        </Badge>
-                      )}
-                      {item.record.total_duration_seconds ? (
-                        <span className="text-xs text-[#5A5248] flex-shrink-0">
-                          {formatDuration(item.record.total_duration_seconds)}
+                  <Link to={`/shared/session/${token}/record/${item.record.id}`}>
+                    <Card className="card-hover cursor-pointer">
+                      <div className="flex items-center gap-3 p-3">
+                        <span className="text-xs font-mono text-[#5A5248] w-6 text-right flex-shrink-0">
+                          {i + 1}.
                         </span>
-                      ) : null}
-                    </div>
-                  </Card>
+                        <div className="w-12 h-12 rounded-md overflow-hidden bg-[#1A1A1A] flex-shrink-0">
+                          {item.record.cover_image_url ? (
+                            <img
+                              src={item.record.cover_image_url}
+                              alt={item.record.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Disc3 className="w-5 h-5 text-[#5A5248]" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#F5F0E8] truncate">
+                            {item.record.title}
+                          </p>
+                          <p className="text-xs text-[#9A9080] truncate">
+                            {item.record.artist}
+                          </p>
+                        </div>
+                        {item.side && item.side !== 'AB' && (
+                          <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                            Lado {item.side}
+                          </Badge>
+                        )}
+                        {item.record.total_duration_seconds ? (
+                          <span className="text-xs text-[#5A5248] flex-shrink-0">
+                            {formatDuration(item.record.total_duration_seconds)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </Card>
+                  </Link>
                 </motion.div>
               ))}
             </div>

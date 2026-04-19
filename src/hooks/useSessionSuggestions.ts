@@ -27,6 +27,46 @@ export interface SessionSuggestion {
   record: SuggestionRecord
 }
 
+export interface PublicRecordDetail {
+  id: string
+  title: string
+  artist: string
+  year: number | null
+  label: string | null
+  catalog_number: string | null
+  country: string | null
+  genres: string[] | null
+  styles: string[] | null
+  tracklist: { position: string; title: string; duration: string }[] | null
+  total_duration_seconds: number | null
+  format: string
+  rpm: number
+  condition: string
+  notes: string | null
+  cover_image_url: string | null
+  play_count: number
+  rating: number | null
+  tags: string[] | null
+  discogs_id: string | null
+}
+
+/** Fetch full record detail via share token (public, no auth) */
+export function usePublicRecordDetail(token: string | undefined, recordId: string | undefined) {
+  return useQuery({
+    queryKey: ['shared-record-detail', token, recordId],
+    queryFn: async () => {
+      if (!token || !recordId) return null
+      const { data, error } = await supabase.rpc('get_shared_session_record', {
+        token,
+        target_record_id: recordId,
+      })
+      if (error) throw error
+      return data as PublicRecordDetail | null
+    },
+    enabled: !!token && !!recordId,
+  })
+}
+
 /** Fetch the session owner's full collection via share token (public, no auth) */
 export function useSessionOwnerCollection(token: string | undefined) {
   return useQuery({

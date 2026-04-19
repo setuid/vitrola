@@ -152,3 +152,53 @@ BEGIN
   RETURN result;
 END;
 $$;
+
+-- 8. SECURITY DEFINER function: fetch full record detail via share token
+--    Validates the record belongs to the session owner's collection.
+CREATE OR REPLACE FUNCTION get_shared_session_record(token text, target_record_id uuid)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  owner_id uuid;
+  result json;
+BEGIN
+  SELECT shared_sessions.user_id INTO owner_id
+  FROM shared_sessions
+  WHERE shared_sessions.share_token = token;
+
+  IF owner_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT json_build_object(
+    'id', records.id,
+    'title', records.title,
+    'artist', records.artist,
+    'year', records.year,
+    'label', records.label,
+    'catalog_number', records.catalog_number,
+    'country', records.country,
+    'genres', records.genres,
+    'styles', records.styles,
+    'tracklist', records.tracklist,
+    'total_duration_seconds', records.total_duration_seconds,
+    'format', records.format,
+    'rpm', records.rpm,
+    'condition', records.condition,
+    'notes', records.notes,
+    'cover_image_url', records.cover_image_url,
+    'play_count', records.play_count,
+    'rating', records.rating,
+    'tags', records.tags,
+    'discogs_id', records.discogs_id
+  ) INTO result
+  FROM records
+  WHERE records.id = target_record_id
+    AND records.user_id = owner_id;
+
+  RETURN result;
+END;
+$$;
