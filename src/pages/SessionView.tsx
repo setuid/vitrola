@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Music, Clock, Disc3, Pencil, Plus, Loader2, Calendar, Share2, Copy, Check, Trash2 } from 'lucide-react'
+import { ArrowLeft, Music, Clock, Disc3, Pencil, Plus, Loader2, Calendar, Share2, Copy, Check, Trash2, ThumbsUp, ThumbsDown, Lightbulb } from 'lucide-react'
 import { useSession } from '@/hooks/useSessions'
 import { useSessionShareToken, useCreateSessionShare, useDeleteSessionShare } from '@/hooks/useSharedSession'
+import { useOwnerSessionSuggestions, useUpdateSuggestionStatus } from '@/hooks/useSessionSuggestions'
 import { toast } from '@/hooks/useToast'
 import { formatDuration } from '@/lib/discogs'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,8 @@ export function SessionView() {
   const { data: shareToken, isLoading: shareLoading } = useSessionShareToken(id || '')
   const createShare = useCreateSessionShare()
   const deleteShare = useDeleteSessionShare()
+  const { data: suggestions = [] } = useOwnerSessionSuggestions(id)
+  const updateStatus = useUpdateSuggestionStatus(id)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -221,6 +224,78 @@ export function SessionView() {
         records={records.map((item) => item.record)}
         onNodeClick={(node) => navigate(`/shelf/${node.id}`)}
       />
+
+      {/* Suggestions from visitors */}
+      {suggestions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb className="w-4 h-4 text-[#C9A84C]" />
+            <p className="text-xs text-[#5A5248] uppercase tracking-wider">
+              Sugestões recebidas ({suggestions.length})
+            </p>
+          </div>
+          <div className="space-y-2">
+            {suggestions.map((s) => (
+              <Card key={s.id}>
+                <div className="flex items-center gap-3 p-3">
+                  <div className="w-10 h-10 rounded-md overflow-hidden bg-[#1A1A1A] flex-shrink-0">
+                    {s.record?.cover_image_url ? (
+                      <img
+                        src={s.record.cover_image_url}
+                        alt={s.record.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Disc3 className="w-4 h-4 text-[#5A5248]" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#F5F0E8] truncate">
+                      {s.record?.title}
+                    </p>
+                    <p className="text-xs text-[#9A9080] truncate">{s.record?.artist}</p>
+                  </div>
+                  {s.status === 'pending' ? (
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-8 h-8 text-green-400 hover:text-green-300 hover:bg-green-400/10"
+                        onClick={() => updateStatus.mutate({ suggestionId: s.id, status: 'accepted' })}
+                        disabled={updateStatus.isPending}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-8 h-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                        onClick={() => updateStatus.mutate({ suggestionId: s.id, status: 'rejected' })}
+                        disabled={updateStatus.isPending}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Badge
+                      variant={s.status === 'accepted' ? 'default' : 'destructive'}
+                      className="text-[10px] flex-shrink-0"
+                    >
+                      {s.status === 'accepted' ? 'Aceito' : 'Recusado'}
+                    </Badge>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Duration footer */}
       {totalDuration > 0 && (
