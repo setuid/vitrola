@@ -6,7 +6,7 @@ import { useSession, useAddRecordToSession } from '@/hooks/useSessions'
 import { useSessionShareToken, useCreateSessionShare, useDeleteSessionShare } from '@/hooks/useSharedSession'
 import { useOwnerSessionSuggestions, useUpdateSuggestionStatus } from '@/hooks/useSessionSuggestions'
 import { toast } from '@/hooks/useToast'
-import { formatDuration } from '@/lib/discogs'
+import { formatDuration, getSideDuration } from '@/lib/discogs'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -74,7 +74,11 @@ export function SessionView() {
 
   const { session, records } = data
   const totalDuration = records.reduce(
-    (acc, item) => acc + (item.record.total_duration_seconds || 0),
+    (acc, item) => acc + getSideDuration(
+      item.record.tracklist,
+      item.record.total_duration_seconds,
+      item.side
+    ),
     0
   )
 

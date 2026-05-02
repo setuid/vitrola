@@ -13,6 +13,7 @@ import {
 import { useRecords } from '@/hooks/useRecords'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from '@/hooks/useToast'
+import { getSideDuration } from '@/lib/discogs'
 import { OCCASIONS } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,7 +62,11 @@ export function SessionBuilder() {
   }, [records, search])
 
   const totalDuration = localQueue.reduce(
-    (acc, item) => acc + (item.record.total_duration_seconds || 0),
+    (acc, item) => acc + getSideDuration(
+      item.record.tracklist,
+      item.record.total_duration_seconds,
+      item.side
+    ),
     0
   )
 
@@ -124,12 +129,17 @@ export function SessionBuilder() {
     })
   }
 
-  const handleSideChange = (itemId: string, side: string) => {
+  const handleSideChange = async (itemId: string, side: string) => {
     setLocalQueue((prev) =>
       prev.map((q) => (q.id === itemId ? { ...q, side } : q))
     )
-    // Persist to DB (fire-and-forget)
-    supabase.from('session_records').update({ side }).eq('id', itemId)
+    const { error } = await supabase
+      .from('session_records')
+      .update({ side })
+      .eq('id', itemId)
+    if (error) {
+      toast({ title: 'Erro ao salvar lado', variant: 'destructive' })
+    }
   }
 
   const handleSave = async () => {
