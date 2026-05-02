@@ -101,3 +101,29 @@ export function formatTotalDuration(seconds: number): string {
   if (h > 0) return `${h}h ${m}min`
   return `${m}min`
 }
+
+/**
+ * Calculate duration in seconds for a specific side ('A', 'B', or 'AB').
+ * Uses tracklist positions (e.g. "A1", "B2") to determine which tracks
+ * belong to each side. Falls back to total/2 when tracklist is unavailable.
+ */
+export function getSideDuration(
+  tracklist: { position: string; duration: string }[] | null,
+  totalSeconds: number | null,
+  side: string | null
+): number {
+  const total = totalSeconds || 0
+  if (!side || side === 'AB') return total
+
+  if (tracklist && tracklist.length > 0) {
+    const sideUpper = side.toUpperCase()
+    const sideTracks = tracklist.filter((t) =>
+      t.position.toUpperCase().startsWith(sideUpper)
+    )
+    if (sideTracks.length > 0) {
+      return sideTracks.reduce((acc, t) => acc + parseDuration(t.duration), 0)
+    }
+  }
+
+  return Math.round(total / 2)
+}

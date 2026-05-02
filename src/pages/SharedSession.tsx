@@ -10,7 +10,7 @@ import {
   usePublicSessionSuggestions,
   useSubmitSuggestion,
 } from '@/hooks/useSessionSuggestions'
-import { formatDuration } from '@/lib/discogs'
+import { formatDuration, getSideDuration } from '@/lib/discogs'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,7 +68,11 @@ export function SharedSession() {
 
   const { session, records } = data
   const totalDuration = records.reduce(
-    (acc, item) => acc + (item.record.total_duration_seconds || 0),
+    (acc, item) => acc + getSideDuration(
+      null,
+      item.record.total_duration_seconds,
+      item.side
+    ),
     0
   )
 
