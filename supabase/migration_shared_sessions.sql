@@ -20,10 +20,11 @@ CREATE POLICY "user manages own session shares"
   ON shared_sessions FOR ALL
   USING (auth.uid() = user_id);
 
--- 4. Anyone can look up a session share token (needed to validate public links)
-CREATE POLICY "anyone can read session shares"
-  ON shared_sessions FOR SELECT
-  USING (true);
+-- 4. NOTE: There is intentionally NO public SELECT policy on this table.
+--    The share tokens must stay secret — a policy like `USING (true)` would
+--    let anyone holding the public anon key dump every user's tokens.
+--    Public access happens exclusively through the SECURITY DEFINER function
+--    below, which validates the token internally and bypasses RLS safely.
 
 -- 5. SECURITY DEFINER function to fetch a shared session by token
 --    Returns session info + records with their vinyl details
