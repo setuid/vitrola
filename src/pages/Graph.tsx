@@ -5,6 +5,7 @@ import { useGraph } from '@/hooks/useGraph'
 import { useRecords } from '@/hooks/useRecords'
 import { VitrolaGraph } from '@/components/graph/VitrolaGraph'
 import { GraphControls } from '@/components/graph/GraphControls'
+import { GraphFilters } from '@/components/graph/GraphFilters'
 
 export function Graph() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -17,6 +18,13 @@ export function Graph() {
     setMinScore,
     highlightFavorites,
     highlightUnplayed,
+    filters,
+    filterOptions,
+    toggleFilter,
+    setFavoritesOnly,
+    clearFilters,
+    activeFilterCount,
+    filteredCount,
   } = useGraph()
 
   useEffect(() => {
@@ -63,12 +71,20 @@ export function Graph() {
       </motion.div>
 
       {/* Controls overlay */}
-      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 max-h-[calc(100dvh-6rem)] overflow-y-auto">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10 max-h-[calc(100dvh-6rem)] overflow-y-auto flex flex-col gap-2">
         <GraphControls
           minScore={minScore}
           onMinScoreChange={setMinScore}
           nodeCount={graphData.nodes.length}
           edgeCount={graphData.edges.length}
+        />
+        <GraphFilters
+          options={filterOptions}
+          filters={filters}
+          activeFilterCount={activeFilterCount}
+          onToggle={toggleFilter}
+          onFavoritesOnly={setFavoritesOnly}
+          onClear={clearFilters}
         />
       </div>
 
@@ -84,11 +100,24 @@ export function Graph() {
       </div>
 
       {graphData.nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center text-[#5A5248] pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center text-[#5A5248] pointer-events-none px-4">
           <div className="text-center">
             <Network className="w-12 h-12 mx-auto mb-3 opacity-20" />
-            <p className="text-sm">Nenhuma conexão encontrada com os filtros atuais.</p>
-            <p className="text-xs mt-1">Tente a intensidade "Explorar" para ver mais conexões.</p>
+            {activeFilterCount > 0 && filteredCount <= 1 ? (
+              <>
+                <p className="text-sm">
+                  {filteredCount === 0
+                    ? 'Nenhum disco corresponde aos filtros.'
+                    : 'Apenas 1 disco corresponde aos filtros — sem conexões para mostrar.'}
+                </p>
+                <p className="text-xs mt-1">Remova alguns filtros para ver mais discos.</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm">Nenhuma conexão encontrada com os filtros atuais.</p>
+                <p className="text-xs mt-1">Tente a intensidade "Explorar" para ver mais conexões.</p>
+              </>
+            )}
           </div>
         </div>
       )}
