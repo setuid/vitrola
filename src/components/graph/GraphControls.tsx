@@ -3,27 +3,36 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+interface Preset {
+  value: number
+  label: string
+  desc: string
+}
+
 interface GraphControlsProps {
   minScore: number
   onMinScoreChange: (v: number) => void
   nodeCount: number
   edgeCount: number
+  presets?: readonly Preset[]
 }
 
-const PRESETS = [
+const DEFAULT_PRESETS: readonly Preset[] = [
   { value: 25, label: 'Explorar', desc: 'Mais conexões' },
   { value: 35, label: 'Equilibrado', desc: 'Balanço ideal' },
   { value: 45, label: 'Essencial', desc: 'Só as fortes' },
-] as const
+]
 
 export function GraphControls({
   minScore,
   onMinScoreChange,
   nodeCount,
   edgeCount,
+  presets = DEFAULT_PRESETS,
 }: GraphControlsProps) {
   const [open, setOpen] = useState(false)
-  const activeLabel = PRESETS.find((p) => p.value === minScore)?.label ?? 'Equilibrado'
+  const activeLabel =
+    presets.find((p) => p.value === minScore)?.label ?? presets[0]?.label ?? ''
 
   return (
     <motion.div
@@ -52,7 +61,7 @@ export function GraphControls({
             className="overflow-hidden"
           >
             <div className="space-y-1.5 pt-3">
-              {PRESETS.map((preset) => {
+              {presets.map((preset) => {
                 const active = minScore === preset.value
                 return (
                   <button
