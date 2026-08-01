@@ -11,6 +11,8 @@ interface VitrolaGraphProps {
   width?: number
   height?: number
   onNodeClick?: (node: GraphNode) => void
+  /** When set, this node is pinned at the center and visually emphasised. */
+  focusId?: string
 }
 
 const NODE_RADIUS = 28
@@ -22,6 +24,7 @@ export function VitrolaGraph({
   width = 800,
   height = 600,
   onNodeClick,
+  focusId,
 }: VitrolaGraphProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const navigate = useNavigate()
@@ -58,6 +61,15 @@ export function VitrolaGraph({
       .force('charge', d3.forceManyBody().strength(-120))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide(NODE_RADIUS + 8))
+
+    // Pin the focus node to the center so relations radiate around it.
+    if (focusId) {
+      const focusNode = (data.nodes as GraphNode[]).find((n) => n.id === focusId)
+      if (focusNode) {
+        focusNode.fx = width / 2
+        focusNode.fy = height / 2
+      }
+    }
 
     // Edges
     const link = g
@@ -109,11 +121,15 @@ export function VitrolaGraph({
       .on('click', (_, d) => onNodeClick ? onNodeClick(d) : navigate(`/shelf/${d.id}`))
       .on('mouseover', function (event, d) {
         setTooltip({ x: event.clientX, y: event.clientY, node: d })
-        d3.select(this).select('circle').attr('stroke', '#C9A84C').attr('stroke-width', 2)
+        const isFocus = !!focusId && d.id === focusId
+        d3.select(this).select('circle').attr('stroke', '#C9A84C').attr('stroke-width', isFocus ? 3 : 2)
       })
-      .on('mouseout', function () {
+      .on('mouseout', function (_event, d) {
         setTooltip(null)
-        d3.select(this).select('circle').attr('stroke', '#2A2A2A').attr('stroke-width', 1)
+        const isFocus = !!focusId && d.id === focusId
+        d3.select(this).select('circle')
+          .attr('stroke', isFocus ? '#C9A84C' : '#2A2A2A')
+          .attr('stroke-width', isFocus ? 3 : 1)
       })
 
     // Background circle
@@ -125,8 +141,8 @@ export function VitrolaGraph({
         if (highlightUnplayed && !d.record.play_count) return '#4C8BC920'
         return '#1A1A1A'
       })
-      .attr('stroke', '#2A2A2A')
-      .attr('stroke-width', 1)
+      .attr('stroke', (d) => (focusId && d.id === focusId ? '#C9A84C' : '#2A2A2A'))
+      .attr('stroke-width', (d) => (focusId && d.id === focusId ? 3 : 1))
 
     // Clip path for cover images
     const defs = svg.append('defs')
@@ -159,6 +175,19 @@ export function VitrolaGraph({
       .attr('font-size', '10px')
       .text((d) => d.record.artist.slice(0, 4))
 
+    // Gold halo around the focus node so it stands out as the center.
+    if (focusId) {
+      node
+        .filter((d) => d.id === focusId)
+        .append('circle')
+        .attr('r', NODE_RADIUS + 5)
+        .attr('fill', 'none')
+        .attr('stroke', '#C9A84C')
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.6)
+        .attr('pointer-events', 'none')
+    }
+
     simulation.on('tick', () => {
       link
         .attr('x1', (d) => (d.source as GraphNode).x ?? 0)
@@ -170,7 +199,7 @@ export function VitrolaGraph({
     })
 
     return () => simulation.stop()
-  }, [data, width, height, highlightFavorites, highlightUnplayed, navigate, onNodeClick])
+  }, [data, width, height, highlightFavorites, highlightUnplayed, navigate, onNodeClick, focusId])
 
   useEffect(() => {
     const cleanup = draw()

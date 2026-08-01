@@ -5,8 +5,9 @@ import {
   ArrowLeft, Play, Edit, Trash2, Clock, Disc3, Calendar, MapPin, Tag, Loader2,
   BookOpen, ChevronDown, ExternalLink, Info, DollarSign
 } from 'lucide-react'
-import { useRecord, useDeleteRecord, usePlayRecord, useUpdateRecord } from '@/hooks/useRecords'
+import { useRecord, useRecords, useDeleteRecord, usePlayRecord, useUpdateRecord } from '@/hooks/useRecords'
 import { useAlbumInfo } from '@/hooks/useAlbumInfo'
+import { RecordGraph } from '@/components/graph/RecordGraph'
 import { useRecordPrice } from '@/hooks/useMarketplaceStats'
 import { toast } from '@/hooks/useToast'
 import { formatDuration, formatTotalDuration } from '@/lib/discogs'
@@ -20,6 +21,7 @@ export function RecordDetail() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { data: record, isLoading } = useRecord(id)
+  const { data: allRecords = [] } = useRecords()
   const deleteRecord = useDeleteRecord()
   const playRecord = usePlayRecord()
   const updateRecord = useUpdateRecord()
@@ -265,6 +267,9 @@ export function RecordDetail() {
           </div>
         </motion.div>
       )}
+
+      {/* Connections graph — this record at the center */}
+      <RecordGraph record={record} allRecords={allRecords} />
 
       {/* About this record */}
       <motion.div
