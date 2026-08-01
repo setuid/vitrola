@@ -8,6 +8,7 @@ import {
 import { useRecord, useRecords, useDeleteRecord, usePlayRecord, useUpdateRecord } from '@/hooks/useRecords'
 import { useAlbumInfo } from '@/hooks/useAlbumInfo'
 import { RecordGraph } from '@/components/graph/RecordGraph'
+import { RelatedRecords } from '@/components/record/RelatedRecords'
 import { useRecordPrice } from '@/hooks/useMarketplaceStats'
 import { toast } from '@/hooks/useToast'
 import { formatDuration, formatTotalDuration } from '@/lib/discogs'
@@ -267,6 +268,9 @@ export function RecordDetail() {
           </div>
         </motion.div>
       )}
+
+      {/* Top 5 most related records */}
+      <RelatedRecords record={record} allRecords={allRecords} />
 
       {/* Connections graph — this record at the center */}
       <RecordGraph record={record} allRecords={allRecords} />
