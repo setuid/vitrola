@@ -6,6 +6,7 @@ import { Shelf } from '@/pages/Shelf'
 import { RecordDetail } from '@/pages/RecordDetail'
 import { RecordEdit } from '@/pages/RecordEdit'
 import { Scanner } from '@/pages/Scanner'
+import { ManualEntry } from '@/pages/ManualEntry'
 import { Sessions } from '@/pages/Sessions'
 import { SessionBuilder } from '@/pages/SessionBuilder'
 import { SessionView } from '@/pages/SessionView'
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/shelf/:id" element={<RecordDetail />} />
             <Route path="/shelf/:id/edit" element={<RecordEdit />} />
             <Route path="/scanner" element={<Scanner />} />
+            <Route path="/scanner/manual" element={<ManualEntry />} />
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/sessions/new" element={<SessionBuilder />} />
             <Route path="/sessions/:id" element={<SessionView />} />

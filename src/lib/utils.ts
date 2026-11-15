@@ -34,3 +34,5 @@ export const OCCASIONS = [
 export const CONDITIONS = ['M', 'NM-', 'VG+', 'VG', 'G+', 'G', 'F', 'P'] as const
 
 export const RPMS = [33, 45, 78] as const
+
+export const FORMATS = ['LP', 'EP', 'Single', '7"', '10"', '12"', 'Compacto', 'Box Set', 'Compilação'] as const

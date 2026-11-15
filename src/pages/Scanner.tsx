@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Camera, Search, Upload, AlertTriangle, Loader2 } from 'lucide-react'
+import { Camera, Search, Upload, AlertTriangle, Loader2, Pencil } from 'lucide-react'
 import { useDropzone } from 'react-dropzone'
 import { useCreateRecord } from '@/hooks/useRecords'
 import { useAuth } from '@/hooks/useAuth'
@@ -229,6 +229,20 @@ export function Scanner() {
               </Button>
             </div>
           </div>
+
+          {/* Manual entry */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-[#2A2A2A]" />
+            <span className="text-xs text-[#5A5248]">ou</span>
+            <div className="flex-1 h-px bg-[#2A2A2A]" />
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full text-[#C9A84C] hover:text-[#E8B84B]"
+            onClick={() => navigate('/scanner/manual')}
+          >
+            <Pencil className="w-4 h-4 mr-2" /> Cadastrar manualmente
+          </Button>
 
           {/* Cropper */}
           {cropImageSrc && (

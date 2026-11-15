@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
 import type { VinylRecord } from '@/lib/supabase'
-import { CONDITIONS, RPMS } from '@/lib/utils'
+import { CONDITIONS, RPMS, FORMATS } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,6 +58,12 @@ export function RecordForm({ defaultValues, onSubmit, submitLabel = 'Salvar', di
 
   const condition = watch('condition')
   const rpm = watch('rpm')
+  const format = watch('format')
+  // Always include the current format value as an option, even if it came
+  // from Discogs as something not in our list (e.g. "Vinyl").
+  const formatOptions = format && !FORMATS.includes(format as (typeof FORMATS)[number])
+    ? [format, ...FORMATS]
+    : FORMATS
 
   const handleFormSubmit = async (data: FormData) => {
     setLoading(true)
@@ -144,6 +150,23 @@ export function RecordForm({ defaultValues, onSubmit, submitLabel = 'Salvar', di
             <SelectContent>
               {RPMS.map((r) => (
                 <SelectItem key={r} value={String(r)}>{r} RPM</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Formato</Label>
+          <Select
+            value={format}
+            onValueChange={(v) => setValue('format', v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {formatOptions.map((f) => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
               ))}
             </SelectContent>
           </Select>
