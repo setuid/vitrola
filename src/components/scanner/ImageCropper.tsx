@@ -3,12 +3,17 @@ import Cropper from 'react-easy-crop'
 import type { Area } from 'react-easy-crop'
 import { Crop, RotateCw, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/hooks/useToast'
 
 interface ImageCropperProps {
   imageSrc: string
   onCropDone: (croppedFile: File) => void
   onCancel: () => void
 }
+
+// Cap the cropped output size. A cover doesn't need more than this, and
+// large canvases make iOS Safari's toBlob() return null (silent failure).
+const MAX_OUTPUT = 1000
 
 function getCroppedCanvas(
   imageSrc: string,
@@ -18,9 +23,14 @@ function getCroppedCanvas(
     const image = new Image()
     image.crossOrigin = 'anonymous'
     image.onload = () => {
+      // Scale the output down to MAX_OUTPUT so we stay well within the
+      // iOS Safari canvas limits.
+      const scale = Math.min(1, MAX_OUTPUT / Math.max(cropArea.width, cropArea.height))
+      const outW = Math.max(1, Math.round(cropArea.width * scale))
+      const outH = Math.max(1, Math.round(cropArea.height * scale))
       const canvas = document.createElement('canvas')
-      canvas.width = cropArea.width
-      canvas.height = cropArea.height
+      canvas.width = outW
+      canvas.height = outH
       const ctx = canvas.getContext('2d')
       if (!ctx) return reject(new Error('Canvas context not available'))
       ctx.drawImage(
@@ -31,8 +41,8 @@ function getCroppedCanvas(
         cropArea.height,
         0,
         0,
-        cropArea.width,
-        cropArea.height
+        outW,
+        outH
       )
       resolve(canvas)
     }
@@ -53,17 +63,30 @@ export function ImageCropper({ imageSrc, onCropDone, onCancel }: ImageCropperPro
 
   const handleConfirm = async () => {
     if (!croppedAreaPixels) return
-    const canvas = await getCroppedCanvas(imageSrc, croppedAreaPixels)
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          const file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' })
-          onCropDone(file)
-        }
-      },
-      'image/jpeg',
-      0.9
-    )
+    try {
+      const canvas = await getCroppedCanvas(imageSrc, croppedAreaPixels)
+      // Prefer toBlob; some iOS versions still return null, so fall back
+      // to a data URL instead of silently dropping the cover.
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9)
+      )
+      let file: File
+      if (blob) {
+        file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' })
+      } else {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+        const res = await fetch(dataUrl)
+        const fallbackBlob = await res.blob()
+        file = new File([fallbackBlob], 'cropped.jpg', { type: 'image/jpeg' })
+      }
+      onCropDone(file)
+    } catch {
+      toast({
+        title: 'Não foi possível recortar a imagem',
+        description: 'Tente uma foto menor ou reduza o zoom.',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (
