@@ -71,7 +71,14 @@ export function ManualEntry() {
       const { error } = await supabase.storage
         .from('covers')
         .upload(path, capturedFile, { upsert: true })
-      if (!error) {
+      if (error) {
+        // Surface the real reason instead of silently dropping the cover.
+        toast({
+          title: 'Falha ao enviar a capa',
+          description: `${error.message}. O disco será salvo sem capa.`,
+          variant: 'destructive',
+        })
+      } else {
         const { data: urlData } = supabase.storage.from('covers').getPublicUrl(path)
         payload.cover_image_url = urlData.publicUrl
         payload.cover_storage_path = path
