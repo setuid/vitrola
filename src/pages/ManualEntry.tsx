@@ -72,10 +72,14 @@ export function ManualEntry() {
         .from('covers')
         .upload(path, capturedFile, { upsert: true })
       if (error) {
-        // Surface the real reason instead of silently dropping the cover.
+        // Diagnostic: is a session token actually present at upload time?
+        const { data: sess } = await supabase.auth.getSession()
+        const hasToken = !!sess.session?.access_token
+        const uid = sess.session?.user?.id ?? 'nenhum'
+        console.error('[cover upload] falhou', { error, hasToken, uid, path })
         toast({
           title: 'Falha ao enviar a capa',
-          description: `${error.message}. O disco será salvo sem capa.`,
+          description: `${error.message} · token: ${hasToken ? 'SIM' : 'NÃO'} · uid: ${uid.slice(0, 8)}`,
           variant: 'destructive',
         })
       } else {
