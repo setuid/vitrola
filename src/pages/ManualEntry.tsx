@@ -64,13 +64,16 @@ export function ManualEntry() {
       play_count: 0,
     } as Omit<VinylRecord, 'id' | 'created_at' | 'updated_at'>
 
-    // Optional cover upload (same storage flow as the scanner).
+    // Optional cover upload. upsert:false → plain INSERT (the path is a
+    // fresh UUID, so there's never a conflict). This avoids the storage
+    // "UpsertObjectProbe" (ON CONFLICT) path, which this storage version
+    // rejects under RLS even with open policies.
     if (capturedFile) {
       const tmpId = crypto.randomUUID()
       const path = `covers/${user.id}/${tmpId}.jpg`
       const { error } = await supabase.storage
         .from('covers')
-        .upload(path, capturedFile, { upsert: true })
+        .upload(path, capturedFile, { upsert: false })
       if (error) {
         // Diagnostic: is a session token actually present at upload time?
         const { data: sess } = await supabase.auth.getSession()

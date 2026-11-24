@@ -147,7 +147,7 @@ export function Scanner() {
     if (capturedFile && user) {
       const tmpId = crypto.randomUUID()
       const path = `covers/${user.id}/${tmpId}.jpg`
-      const { error } = await supabase.storage.from('covers').upload(path, capturedFile, { upsert: true })
+      const { error } = await supabase.storage.from('covers').upload(path, capturedFile, { upsert: false })
       if (error) {
         toast({
           title: 'Falha ao enviar a capa',
@@ -168,7 +168,7 @@ export function Scanner() {
           const ext = blob.type === 'image/png' ? 'png' : 'jpg'
           const path = `covers/${user.id}/${tmpId}.${ext}`
           const { error } = await supabase.storage.from('covers').upload(path, blob, {
-            upsert: true,
+            upsert: false,
             contentType: blob.type,
           })
           if (!error) {
